@@ -18,7 +18,11 @@
     <div class="profile-card__content">
       <div class="profile-card__top">
         <div class="profile-avatar-wrap">
-          <div class="avatar avatar--large profile-avatar"><?= e(initials($account['name'])) ?></div>
+          <?php if (!empty($account['avatar'])): ?>
+            <img class="avatar avatar--large profile-avatar avatar-image" src="<?= e($account['avatar']) ?>" alt="Foto de perfil de <?= e($account['name']) ?>">
+          <?php else: ?>
+            <div class="avatar avatar--large profile-avatar"><?= e(initials($account['name'])) ?></div>
+          <?php endif; ?>
           <span class="profile-status" aria-label="Online"></span>
         </div>
         <div class="profile-card__actions">

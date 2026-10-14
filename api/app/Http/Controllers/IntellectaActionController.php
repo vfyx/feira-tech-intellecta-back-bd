@@ -54,9 +54,21 @@ class IntellectaActionController extends Controller
                     'name'=>'required|string|max:100', 'username'=>['required','regex:/\A[a-z0-9_]{3,30}\z/',Rule::unique('usuarios')->ignore($uid)],
                     'bio'=>'nullable|string|max:1000','birthdate'=>'nullable|date_format:Y-m-d|before_or_equal:today',
                     'gender'=>['nullable',Rule::in(['feminino','masculino','outro'])],
+                    'avatar'=>'nullable|string|max:2800000',
                 ]);
-                DB::table('usuarios')->where('id',$uid)->update(['name'=>$data['name'],'username'=>$data['username'],
-                    'bio'=>$data['bio']??'', 'nascimento'=>$data['birthdate']??null,'genero'=>$data['gender']??null,'updated_at'=>now()]);
+                $profileUpdate = ['name'=>$data['name'],'username'=>$data['username'],
+                    'bio'=>$data['bio']??'', 'nascimento'=>$data['birthdate']??null,'genero'=>$data['gender']??null,'updated_at'=>now()];
+                if (array_key_exists('avatar', $data)) {
+                    $avatar = $data['avatar'];
+                }
+                if (isset($avatar)) {
+                    abort_unless(preg_match('#\Adata:image/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)\z#', $avatar, $match), 422, 'Imagem inválida.');
+                    $bytes = base64_decode($match[2], true);
+                    $info = $bytes ? @getimagesizefromstring($bytes) : false;
+                    abort_unless($info && $info['mime'] === 'image/' . $match[1] && strlen($bytes) <= 2097152 && $info[0] * $info[1] <= 25000000, 422, 'Imagem inválida ou muito grande.');
+                    $profileUpdate['avatar_url'] = $avatar;
+                }
+                DB::table('usuarios')->where('id',$uid)->update($profileUpdate);
                 return ['message'=>'Perfil atualizado.'];
             }
             if ($action === 'password') {

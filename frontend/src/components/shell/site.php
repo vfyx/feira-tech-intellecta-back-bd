@@ -127,7 +127,11 @@ function render_sidebar(string $page, array $account): void
         </a>
       </nav>
       <a class="sidebar-profile-link <?= in_array($page, ['profile', 'editar-perfil'], true) ? 'active' : '' ?>" href="?page=editar-perfil" aria-label="Abrir edição do perfil">
-        <div class="avatar"><?= e(initials($account['name'])) ?></div>
+        <?php if (!empty($account['avatar'])): ?>
+          <img class="avatar avatar-image" src="<?= e($account['avatar']) ?>" alt="">
+        <?php else: ?>
+          <div class="avatar"><?= e(initials($account['name'])) ?></div>
+        <?php endif; ?>
         <span class="sidebar-profile-link__copy"><strong><?= e($account['name']) ?></strong><small>@<?= e($account['username']) ?></small></span>
         <span class="sidebar-profile-link__status" aria-label="Online"></span>
       </a>

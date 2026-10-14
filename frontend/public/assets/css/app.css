@@ -61,6 +61,10 @@ button { cursor: pointer; }
 .list > :nth-child(4) { animation-delay: .24s; }
 .avatar { display: grid; place-items: center; flex: 0 0 auto; width: 2.75rem; height: 2.75rem; border: 1px solid rgba(233, 221, 202, .2); border-radius: 50%; color: var(--beige); background: linear-gradient(135deg, #6b7968, #303d2b); font-size: .78rem; font-weight: 700; }
 .avatar--large { width: 5.8rem; height: 5.8rem; font-size: 1.5rem; }
+.avatar-image { display: block; object-fit: cover; }
+.profile-avatar-picker { position: relative; display: block; padding: 0; border: 0; border-radius: 50%; color: inherit; background: none; }
+.profile-avatar-picker__label { position: absolute; inset: auto .25rem .25rem; padding: .2rem .35rem; border-radius: 0 0 999px 999px; color: var(--text); background: rgba(15, 18, 13, .8); font-size: .62rem; font-weight: 700; text-align: center; }
+.profile-avatar-picker:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 .input, .composer-input { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-sm); outline: none; color: var(--text); background: rgba(15, 18, 13, .68); padding: .82rem 1rem; transition: border-color .25s var(--ease), box-shadow .25s var(--ease), background .25s var(--ease); }
 .input:hover, .composer-input:hover { border-color: rgba(233, 221, 202, .25); }
 .input:focus, .composer-input:focus { border-color: var(--primary); background: rgba(15, 18, 13, .9); box-shadow: 0 0 0 3px rgba(205, 212, 126, .12); }

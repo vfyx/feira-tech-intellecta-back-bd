@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const boot = JSON.parse(document.querySelector('#app-state').textContent);
-  let state = boot.data, pendingMedia = null, pendingPoll = null, activeChat = null;
+  let state = boot.data, pendingMedia = null, pendingPoll = null, pendingAvatar = null, activeChat = null;
   const params = new URLSearchParams(location.search);
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -109,6 +109,7 @@
       const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/gif,image/webp';
       input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>2097152){notify('Selecione uma imagem de até 2 MB.');return;}const reader=new FileReader();reader.onload=()=>{pendingMedia=reader.result;attachments();};reader.onerror=()=>notify('Não foi possível ler a imagem.');reader.readAsDataURL(file);};input.click();return;
     }
+    if(button.matches('[data-avatar-picker]')){$('[data-avatar-input]').click();return;}
     if(button.matches('[data-remove-media]')){pendingMedia=null;attachments();return;}
     if(button.matches('[data-remove-poll]')){pendingPoll=null;attachments();return;}
     if(button.matches('[data-poll]')){dialog('Criar enquete','<form class="form-stack" data-poll-form><label class="form-label">Pergunta<input class="input" name="question" maxlength="300" required></label><label class="form-label">Opções (uma por linha, de 2 a 6)<textarea class="input" name="options" rows="6" required></textarea></label><button class="btn btn-primary">Anexar enquete</button></form>');return;}
@@ -160,7 +161,7 @@
       const values=Object.fromEntries(new FormData(form));
       if(form.matches('[data-auth-form]'))await finishAuth(await api(form.dataset.authForm,{...values,terms:!!values.terms}));
       else if(form.matches('[data-recover-form]')){const result=await api('recover',values);form.closest('dialog').close();await finishAuth(result);}
-      else if(form.matches('[data-profile-form]')){await api('profile',values);location.assign('?page=profile');}
+      else if(form.matches('[data-profile-form]')){if(pendingAvatar)values.avatar=pendingAvatar;await api('profile',values);location.assign('?page=profile');}
       else if(form.matches('[data-password-form]')){notify((await api('password',values)).message);form.reset();}
       else if(form.matches('[data-post-form]')){const result=await api('post',{body:$('textarea',form).value,topic:values.topic,media:pendingMedia,poll:pendingPoll});form.reset();pendingMedia=pendingPoll=null;attachments();await refresh();animate($('.home-feed article'));notify(result.message);}
       else if(form.matches('[data-poll-form]')){const options=values.options.split('\n').map(x=>x.trim()).filter(Boolean);if(options.length<2||options.length>6||new Set(options).size!==options.length)throw new Error('Informe de 2 a 6 opções diferentes.');pendingPoll={question:values.question,options};form.closest('dialog').close();attachments();}
@@ -176,7 +177,7 @@
     finally{delete form.dataset.busy;if(submit){submit.disabled=false;submit.classList.remove('is-submitting');}}
   });
   document.addEventListener('input',e=>{const input=e.target;if(input.matches('[data-filter]'))filter(input);if(input.matches('[data-help-search]'))$$('.faq-item').forEach(item=>item.hidden=!item.textContent.toLocaleLowerCase().includes(input.value.toLocaleLowerCase()));if(input.matches('[data-contact-search]'))$$('[data-contact]',input.closest('dialog')).forEach(p=>p.hidden=!p.textContent.toLocaleLowerCase().includes(input.value.toLocaleLowerCase()));});
-  document.addEventListener('change',async e=>{const input=e.target;if(!input.matches('[data-toggle-setting]'))return;const value=input.checked;input.disabled=true;try{let password='';if(input.dataset.toggleSetting==='two-factor'&&!value){password=prompt('Senha atual para desativar a chave adicional:');if(password===null){input.checked=!value;return;}}const result=await api('setting',{key:input.dataset.toggleSetting,value,current_password:password});await refresh();if(result.security_key)secretDialog('Chave adicional de acesso',result.security_key);else notify(result.message);}catch(error){input.checked=!value;notify(error.message);}finally{input.disabled=false;}});
+  document.addEventListener('change',async e=>{const input=e.target;if(input.matches('[data-avatar-input]')){const file=input.files[0];if(!file)return;if(!/^image\/(png|jpeg|gif|webp)$/.test(file.type)){notify('Selecione uma imagem PNG, JPEG, GIF ou WebP.');input.value='';return;}if(file.size>2097152){notify('Selecione uma imagem de até 2 MB.');input.value='';return;}const reader=new FileReader();reader.onload=()=>{pendingAvatar=reader.result;const picker=$('[data-avatar-picker]');picker.querySelector('.avatar')?.replaceWith(Object.assign(document.createElement('img'),{className:'avatar avatar--large avatar-image',src:pendingAvatar,alt:'Prévia da foto de perfil'}));};reader.onerror=()=>notify('Não foi possível ler a imagem.');reader.readAsDataURL(file);return;}if(!input.matches('[data-toggle-setting]'))return;const value=input.checked;input.disabled=true;try{let password='';if(input.dataset.toggleSetting==='two-factor'&&!value){password=prompt('Senha atual para desativar a chave adicional:');if(password===null){input.checked=!value;return;}}const result=await api('setting',{key:input.dataset.toggleSetting,value,current_password:password});await refresh();if(result.security_key)secretDialog('Chave adicional de acesso',result.security_key);else notify(result.message);}catch(error){input.checked=!value;notify(error.message);}finally{input.disabled=false;}});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#intellia-panel')&&!$('#intellia-panel').hidden)$('[data-ai-backdrop]').click();if(e.target.matches('#ai-question')&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();e.target.form.requestSubmit();}if(e.target.matches('[data-profile-tab]')&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const tabs=$$('[data-profile-tab]'),i=tabs.indexOf(e.target),next=tabs[(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];next.focus();next.click();}});
   if(state){
     render();if($('#gender'))$('#gender').value=state.account.gender;

@@ -40,12 +40,13 @@ class IntellectaStateController extends Controller
             ->where(function ($query) use ($uid): void {
                 $query->where('u.id', $uid)->orWhere('p.perfil_publico', true)->orWhereNull('p.user_id');
             })
-            ->orderBy('u.id')->get(['u.id', 'u.name', 'u.username', 'u.bio', 'u.created_at']);
+            ->orderBy('u.id')->get(['u.id', 'u.name', 'u.username', 'u.bio', 'u.avatar_url', 'u.created_at']);
         $visibleIds = $visible->pluck('id')->all();
         $following = DB::table('seguidores')->where('seguidor_id', $uid)->whereNotIn('seguido_id', $hidden)->pluck('seguido_id');
         $account = [
             'id' => (string) $uid, 'name' => $user->name, 'username' => $user->username,
             'email' => $user->email, 'bio' => $user->bio ?? '', 'class' => $user->turma ?? '',
+            'avatar' => str_starts_with((string) ($user->avatar_url ?? ''), 'data:image/') ? $user->avatar_url : null,
             'birthdate' => $user->nascimento ? substr((string) $user->nascimento, 0, 10) : '',
             'birthdate_label' => $user->nascimento ? Carbon::parse($user->nascimento)->format('d/m/Y') : '',
             'gender' => $user->genero ?? '', 'country' => $user->pais ?? '', 'phone' => $user->telefone ?? '',
@@ -62,6 +63,7 @@ class IntellectaStateController extends Controller
         $people = $visible->map(fn ($person): array => [
             'id' => (string) $person->id, 'name' => $person->name, 'username' => $person->username,
             'bio' => $person->bio ?? '', 'demo' => false, 'created' => $person->created_at,
+            'avatar' => str_starts_with((string) ($person->avatar_url ?? ''), 'data:image/') ? $person->avatar_url : null,
             'online' => false, 'following' => (int) ($followCounts[$person->id] ?? 0),
             'followers' => (int) ($followerCounts[$person->id] ?? 0),
         ])->all();

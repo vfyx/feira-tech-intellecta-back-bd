@@ -8,7 +8,11 @@
 <div class="page-content">
   <section class="public-profile-hero card" aria-labelledby="public-profile-name">
     <div class="public-profile-hero__identity">
-      <div class="avatar avatar--large"><?= e(initials($person['name'])) ?></div>
+      <?php if (!empty($person['avatar'])): ?>
+        <img class="avatar avatar--large avatar-image" src="<?= e($person['avatar']) ?>" alt="Foto de perfil de <?= e($person['name']) ?>">
+      <?php else: ?>
+        <div class="avatar avatar--large"><?= e(initials($person['name'])) ?></div>
+      <?php endif; ?>
       <div class="public-profile-hero__copy">
         <span class="eyebrow">Membro desde <?= e(date('Y',strtotime($person['created']))) ?></span>
         <h2 id="public-profile-name"><?= e($person['name']) ?></h2>

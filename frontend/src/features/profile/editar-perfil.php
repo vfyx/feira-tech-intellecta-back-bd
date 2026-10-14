@@ -14,8 +14,14 @@ declare(strict_types=1);
   <section class="account-profile-card" aria-labelledby="profile-edit-title">
     <div class="account-profile-identity">
       <div class="account-avatar-wrap">
-        <div class="avatar avatar--large"><?= e(initials($account['name'])) ?></div>
-        
+        <button class="profile-avatar-picker" type="button" data-avatar-picker aria-label="Selecionar foto de perfil">
+          <?php if (!empty($account['avatar'])): ?>
+            <img class="avatar avatar--large avatar-image" src="<?= e($account['avatar']) ?>" alt="Foto de perfil de <?= e($account['name']) ?>">
+          <?php else: ?>
+            <span class="avatar avatar--large"><?= e(initials($account['name'])) ?></span>
+          <?php endif; ?>
+          <span class="profile-avatar-picker__label">Alterar foto</span>
+        </button>
       </div>
       <div>
         <div class="account-name-line">
@@ -28,6 +34,7 @@ declare(strict_types=1);
 
     <div class="account-divider"></div>
     <form class="account-form" method="post" action="?page=editar-perfil" data-profile-form>
+      <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" data-avatar-input hidden>
       <label class="form-label">Nome<input class="input" name="name" value="<?= e($account['name']) ?>" required maxlength="100"></label>
       <label class="form-label">Usuário<input class="input" name="username" value="<?= e($account['username']) ?>" required pattern="[a-z0-9_]{3,30}"></label>
       <label class="form-label" for="bio">Bio</label>
