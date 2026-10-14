@@ -1,0 +1,82 @@
+INTELLECTA / ETEC HUB - PACOTE PARA O NOTEBOOK
+Preparado em 13/10/2026. Destino: Windows 10/11 de 64 bits.
+
+COMO USAR AMANHA
+
+1. Baixe a pasta inteira ou o ZIP do Drive. Se for ZIP, extraia tudo antes.
+   Use uma pasta local simples, por exemplo C:\Intellecta-Feira.
+   Nao execute os arquivos de dentro do ZIP ou da previa do Google Drive.
+
+2. Abra o Docker Desktop e espere ele ficar pronto.
+   Ele precisa estar no modo de containers Linux.
+
+3. De dois cliques em 1-PREPARAR.bat.
+   Ele carrega a imagem incluida e restaura o backup SOMENTE no banco separado
+   deste pacote, quando esse banco esta vazio. Nao executa migrations.
+   Espere aparecer PRONTO. Em novas execucoes, seus dados sao preservados.
+
+4. De dois cliques em 2-INICIAR.bat e mantenha as duas janelas abertas.
+   Abra no navegador: http://localhost:8080
+   Use sua conta existente ou crie uma nova pela tela.
+
+5. Ao terminar, feche as duas janelas dos servidores e abra 3-PARAR-BANCO.bat.
+   Isso para apenas o banco do pacote e mantem os dados para a proxima vez.
+
+O QUE JA ESTA INCLUIDO
+
+- Frontend atual da copia USBWebserver.
+- API Laravel atual e pasta vendor completa: nao precisa instalar Composer.
+- PHP 8.3.33 para Windows x64 e extensoes: nao precisa instalar Laragon/XAMPP.
+- Exportacao nova e completa do banco escola: banco\escola.dump.
+- Imagem PostgreSQL 16 com pgvector, igual a usada no PC de origem.
+- Configuracao local pronta: .env na raiz e api\.env.
+- Instalador oficial Microsoft Visual C++ x64, caso o PHP precise dele.
+
+O pacote funciona sem chave nova de Gemini e sem Node.js para os recursos
+sociais atuais. Intellia/Gemini e busca vetorial na interface ainda ficam
+para a proxima etapa. Fontes externas podem usar a internet; ha fontes locais
+alternativas. A preparacao nao precisa baixar a imagem ou dependencias.
+
+CONFIGURACAO E PRESERVACAO
+
+- Frontend: 127.0.0.1:8080 / localhost:8080.
+- API: 127.0.0.1:8000.
+- Banco do pacote: 127.0.0.1:55432, database escola.
+- Projeto Docker separado: intellecta-feira-portatil.
+- Volume separado: intellecta-feira-portatil_dados_portateis.
+- O banco antigo do notebook, normalmente na porta 5432, nao e substituido.
+- O .env do PC de origem nao foi modificado. Somente a copia foi adaptada.
+- Novos posts aparecem diretamente, sem analise previa de moderacao.
+- Os posts que ja estavam pendentes no backup mantem seu estado anterior.
+- Contas existentes no PostgreSQL vieram no backup. Contas do JSON antigo
+  nao foram importadas. Sessoes de navegador antigas nao foram copiadas.
+
+IMPORTANTE PARA O DRIVE
+
+Este pacote contem dados do banco e configuracoes privadas. Mantenha o Drive
+restrito a voce e ao seu parceiro. Nao publique esta pasta/ZIP no GitHub nem
+ative compartilhamento publico. Nenhuma senha precisa ser copiada manualmente.
+
+SE ALGO NAO ABRIR
+
+- PHP nao inicia ou pede VCRUNTIME/MSVCP: execute
+  instaladores\vc_redist.x64.exe, da Microsoft, e tente 1-PREPARAR.bat novamente.
+- Docker indisponivel: abra o Docker Desktop e espere terminar de iniciar.
+- Portas 8000/8080 ocupadas: feche as versoes antigas da API/site e tente de novo.
+- Porta 55432 ocupada: pare apenas o outro servico que usa essa porta; nao apague
+  bancos nem volumes. Solicite ajuda antes de mudar a configuracao.
+- Nao use o INICIAR.bat antigo do frontend nem siga o README antigo da API:
+  neste pacote, use apenas os arquivos numerados da raiz.
+- Nao rode comandos que apagam volumes ou recriam o banco.
+
+VALIDACAO NO PC DE ORIGEM
+
+O dump foi restaurado em banco Docker separado. O PHP do proprio pacote
+conectou ao PostgreSQL e ao pgvector. Passaram 85 verificacoes na copia
+restaurada, com os registros de teste automatico revertidos ao final.
+O login da interface foi conferido usando os servidores e arquivos do pacote.
+O iniciador de preparacao foi conferido tambem com Windows PowerShell 5.1.
+
+O backup e uma fotografia dos dados no momento da exportacao. Alteracoes feitas
+depois no PC de origem ou no notebook ficam separadas; nao ha sincronizacao
+automatica pelo GitHub ou Google Drive.
