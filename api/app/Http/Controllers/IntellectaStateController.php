@@ -40,13 +40,17 @@ class IntellectaStateController extends Controller
             ->where(function ($query) use ($uid): void {
                 $query->where('u.id', $uid)->orWhere('p.perfil_publico', true)->orWhereNull('p.user_id');
             })
-            ->orderBy('u.id')->get(['u.id', 'u.name', 'u.username', 'u.bio', 'u.avatar_url', 'u.created_at']);
+            ->orderBy('u.id')->get(['u.id', 'u.name', 'u.username', 'u.bio', 'u.avatar_url', 'u.banner_url',
+                'u.curso', 'u.ano_escolar', 'u.role', 'u.verificado_em', 'u.created_at']);
         $visibleIds = $visible->pluck('id')->all();
         $following = DB::table('seguidores')->where('seguidor_id', $uid)->whereNotIn('seguido_id', $hidden)->pluck('seguido_id');
         $account = [
             'id' => (string) $uid, 'name' => $user->name, 'username' => $user->username,
             'email' => $user->email, 'bio' => $user->bio ?? '', 'class' => $user->turma ?? '',
             'avatar' => str_starts_with((string) ($user->avatar_url ?? ''), 'data:image/') ? $user->avatar_url : null,
+            'banner' => str_starts_with((string) ($user->banner_url ?? ''), 'data:image/') ? $user->banner_url : null,
+            'course' => $user->curso ?? '', 'schoolYear' => $user->ano_escolar ?? '',
+            'role' => $user->role, 'verified' => $user->role === 'admin' || ($user->role === 'professor' && $user->verificado_em !== null),
             'birthdate' => $user->nascimento ? substr((string) $user->nascimento, 0, 10) : '',
             'birthdate_label' => $user->nascimento ? Carbon::parse($user->nascimento)->format('d/m/Y') : '',
             'gender' => $user->genero ?? '', 'country' => $user->pais ?? '', 'phone' => $user->telefone ?? '',
@@ -64,6 +68,9 @@ class IntellectaStateController extends Controller
             'id' => (string) $person->id, 'name' => $person->name, 'username' => $person->username,
             'bio' => $person->bio ?? '', 'demo' => false, 'created' => $person->created_at,
             'avatar' => str_starts_with((string) ($person->avatar_url ?? ''), 'data:image/') ? $person->avatar_url : null,
+            'banner' => str_starts_with((string) ($person->banner_url ?? ''), 'data:image/') ? $person->banner_url : null,
+            'course' => $person->curso ?? '', 'schoolYear' => $person->ano_escolar ?? '',
+            'role' => $person->role, 'verified' => $person->role === 'admin' || ($person->role === 'professor' && $person->verificado_em !== null),
             'online' => false, 'following' => (int) ($followCounts[$person->id] ?? 0),
             'followers' => (int) ($followerCounts[$person->id] ?? 0),
         ])->all();
@@ -81,8 +88,8 @@ class IntellectaStateController extends Controller
         $likes = DB::table('curtidas')->whereIn('post_id', $postIds)->get()->groupBy('post_id');
         $comments = DB::table('comentarios as c')->join('usuarios as u', 'u.id', '=', 'c.user_id')
             ->whereIn('c.post_id', $postIds)->whereNotIn('c.user_id', $hidden)->orderBy('c.id')
-            ->get(['c.*', 'u.name as author_name'])->groupBy('post_id');
-        $media = DB::table('midias_publicacoes')->whereIn('post_id', $postIds)->where('tipo', 'imagem')->orderBy('id')->get()->groupBy('post_id');
+            ->get(['c.*', 'u.name as author_name', 'u.username as author_username', 'u.role as author_role', 'u.verificado_em as author_verified'])->groupBy('post_id');
+        $media = DB::table('midias_publicacoes')->whereIn('post_id', $postIds)->orderBy('id')->get()->groupBy('post_id');
         $polls = DB::table('enquetes')->whereIn('post_id', $postIds)->get()->keyBy('post_id');
         $pollIds = $polls->pluck('id')->all();
         $options = DB::table('opcoes_enquetes')->whereIn('enquete_id', $pollIds)->orderBy('ordem')->get()->groupBy('enquete_id');
@@ -91,7 +98,9 @@ class IntellectaStateController extends Controller
             $liked = $likes->get($post->id, collect());
             $replies = $comments->get($post->id, collect())->map(fn ($c): array => [
                 'id' => (string) $c->id, 'author' => (string) $c->user_id,
-                'name' => $c->author_name, 'body' => $c->content, 'time' => $this->time($c->created_at),
+                'name' => $c->author_name, 'username' => $c->author_username,
+                'verified' => $c->author_role === 'professor' && $c->author_verified !== null,
+                'body' => $c->content, 'time' => $this->time($c->created_at),
             ])->all();
             $poll = null;
             if ($question = $polls->get($post->id)) {
@@ -105,16 +114,20 @@ class IntellectaStateController extends Controller
                     'choice' => $choice === false ? null : $choice,
                 ];
             }
-            $image = $media->get($post->id, collect())->first()?->url;
-            // URLs de imagem vindas do banco não podem executar esquemas arbitrários.
-            if ($image && !preg_match('#^(?:https?://|/(?!/)|data:image/(?:png|jpeg|gif|webp);base64,)#i', $image)) $image = null;
+            $attachment = $media->get($post->id, collect())->first();
+            $mediaUrl = $attachment?->url;
+            $mediaType = $attachment?->tipo;
+            $pattern = $mediaType === 'video'
+                ? '#^(?:https?://|/(?!/)|data:video/(?:mp4|webm|ogg);base64,)#i'
+                : '#^(?:https?://|/(?!/)|data:image/(?:png|jpeg|gif|webp);base64,)#i';
+            if ($mediaUrl && (!$mediaType || !preg_match($pattern, $mediaUrl))) $mediaUrl = null;
             return [
                 'id' => (string) $post->id, 'author' => (string) $post->user_id,
                 'name' => $post->author_name, 'username' => $post->author_username,
                 'body' => $post->content, 'created' => $post->created_at, 'time' => $this->time($post->created_at),
                 'topic' => $post->topic, 'status' => $post->status, 'likes' => $liked->count(), 'comments' => count($replies),
                 'isLiked' => $liked->contains('user_id', $uid), 'replies' => $replies,
-                'media' => $image, 'poll' => $poll,
+                'media' => $mediaUrl, 'mediaType' => $mediaUrl ? $mediaType : null, 'poll' => $poll,
             ];
         })->all();
 
@@ -133,7 +146,7 @@ class IntellectaStateController extends Controller
                     : $m->conteudo,
                 'time' => $this->time($m->created_at),
             ])->all();
-        $labels = ['curtida' => 'curtiu sua publicação', 'comentario' => 'comentou na sua publicação', 'mensagem' => 'enviou uma mensagem', 'seguidor' => 'começou a seguir você', 'publicacao' => 'publicou uma ideia', 'acesso' => 'Novo acesso à conta'];
+        $labels = ['curtida' => 'curtiu sua publicação', 'comentario' => 'comentou na sua publicação', 'mensagem' => 'enviou uma mensagem', 'mencao' => 'mencionou você em uma publicação', 'republicacao' => 'republicou sua publicação', 'seguidor' => 'começou a seguir você', 'publicacao' => 'publicou uma ideia', 'acesso' => 'Novo acesso à conta'];
         $notifications = DB::table('notificacoes as n')->leftJoin('usuarios as u', 'u.id', '=', 'n.autor_id')
             ->where('n.user_id', $uid)->where(fn ($q) => $q->whereNull('n.autor_id')->orWhereNotIn('n.autor_id', $hidden))
             ->orderByDesc('n.id')->limit(100)->get(['n.*', 'u.name as author_name'])

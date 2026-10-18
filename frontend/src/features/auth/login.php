@@ -62,6 +62,7 @@
       </div>
 
       <p class="auth-foot">Ainda não tem uma conta? <a href="?page=register">Criar conta</a></p>
+      <p class="auth-foot"><a href="?page=institutional-login">Acesso institucional — Professores e Administração</a></p>
     </div>
   </section>
 </div>

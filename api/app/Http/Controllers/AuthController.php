@@ -99,6 +99,24 @@ class AuthController extends Controller
         });
     }
 
+    public function institutionalLogin(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+        $user = User::where('email', $data['email'])->first();
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages(['email' => ['Credenciais inválidas.']]);
+        }
+        abort_unless(
+            $user->isAdmin() || $user->role === User::ROLE_MODERATOR || $user->isVerifiedInstitutional(),
+            403,
+            'Esta conta não possui acesso institucional autorizado.'
+        );
+        return ['user' => $user, 'token' => $user->createToken('institutional')->plainTextToken];
+    }
+
     public function me(Request $request)
     {
         return $request->user();

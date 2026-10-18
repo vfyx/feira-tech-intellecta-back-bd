@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'public' => ['login', 'register', 'termos', 'privacidade-legal', 'ajuda'],
+    'public' => ['login', 'register', 'institutional-login', 'termos', 'privacidade-legal', 'ajuda'],
     'app' => [
         'home',
         'explore',
@@ -21,6 +21,7 @@ return [
         'preferencias',
         'privacidade',
         'seguranca',
+        'admin-institucional',
         'ajuda',
         'termos',
         'privacidade-legal',
@@ -29,6 +30,7 @@ return [
     'views' => [
         'login' => 'features/auth/login.php',
         'register' => 'features/auth/register.php',
+        'institutional-login' => 'features/auth/institutional-login.php',
         'home' => 'features/feed/home.php',
         'saved' => 'features/feed/saved.php',
         'explore' => 'features/discovery/explore.php',
@@ -45,6 +47,7 @@ return [
         'preferencias' => 'features/account/preferencias.php',
         'privacidade' => 'features/account/privacidade.php',
         'seguranca' => 'features/account/seguranca.php',
+        'admin-institucional' => 'features/account/admin-institucional.php',
         'ajuda' => 'features/institutional/ajuda.php',
         'termos' => 'features/institutional/termos.php',
         'privacidade-legal' => 'features/institutional/privacidade-legal.php',

@@ -10,9 +10,8 @@
 
 <div class="page-content profile-page">
   <section class="profile-card card" aria-labelledby="profile-name">
-    <div class="profile-card__cover">
-      <span class="profile-card__cover-label">INTELLECTA</span>
-      <span class="profile-card__cover-mark">✦</span>
+    <div class="profile-card__cover"<?= !empty($account['banner']) ? ' style="background-image:url(' . e($account['banner']) . ')"' : '' ?>>
+      <?php if (empty($account['banner'])): ?><span class="profile-card__cover-label">INTELLECTA</span><span class="profile-card__cover-mark">✦</span><?php endif; ?>
     </div>
 
     <div class="profile-card__content">
@@ -35,7 +34,7 @@
         <div>
           <span class="eyebrow">Perfil público</span>
           <h2 id="profile-name"><?= e($account['name']) ?></h2>
-          <p class="profile-handle">@<?= e($account['username']) ?> <span class="profile-verified"><?= icon('check') ?></span></p>
+          <p class="profile-handle">@<?= e($account['username']) ?><?php if (!empty($account['verified'])): ?> <span class="profile-verified" title="Professor verificado" aria-label="Professor verificado"><?= icon('check') ?></span><?php endif; ?></p>
         </div>
         <span class="profile-presence"><i></i> online agora</span>
       </div>
@@ -43,7 +42,7 @@
       <p class="profile-bio"><?= e($account['bio'] ?: 'Conte sobre você em Editar perfil.') ?></p>
 
       <div class="profile-details">
-        <span><?= icon('spark') ?> Tecnologia &amp; design</span>
+        <?php if (!empty($account['schoolYear']) || !empty($account['course'])): ?><span><?= icon('spark') ?> <?= e(trim(($account['schoolYear'] ?? '') . ' · ' . ($account['course'] ?? ''), ' ·')) ?></span><?php endif; ?>
         <span><?= icon('home') ?> Intellecta desde <?= e(date('Y',strtotime($account['created']))) ?></span>
       </div>
 

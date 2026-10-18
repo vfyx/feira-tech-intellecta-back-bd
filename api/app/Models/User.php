@@ -15,9 +15,14 @@ class User extends Authenticatable
     protected $table = 'usuarios';
 
     public const ROLE_STUDENT = 'aluno';
+    public const ROLE_MODERATOR = 'moderador';
+    public const ROLE_TEACHER = 'professor';
     public const ROLE_ADMIN = 'admin';
 
-    protected $fillable = ['name', 'email', 'username', 'password', 'role'];
+    protected $fillable = [
+        'name', 'email', 'username', 'password', 'role', 'curso',
+        'ano_escolar', 'banner_url', 'verificado_em',
+    ];
 
     protected $hidden = [
         'password',
@@ -52,5 +57,16 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isModerator(): bool
+    {
+        return in_array($this->role, [self::ROLE_MODERATOR, self::ROLE_ADMIN], true);
+    }
+
+    public function isVerifiedInstitutional(): bool
+    {
+        return $this->role === self::ROLE_ADMIN
+            || ($this->role === self::ROLE_TEACHER && $this->verificado_em !== null);
     }
 }

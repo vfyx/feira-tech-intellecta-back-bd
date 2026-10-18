@@ -5,10 +5,12 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ConversaController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ReportController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/institutional-login', [AuthController::class, 'institutionalLogin']);
 
 // O relato é anônimo e não exige autenticação.
 Route::post('/reports', [ReportController::class, 'store']);
@@ -56,9 +58,18 @@ Route::middleware('auth:sanctum')->group(function (): void {
         )->whereNumber('conversa');
     });
 
-    Route::middleware('admin')->group(function (): void {
+    Route::middleware('moderator')->group(function (): void {
         Route::patch('/posts/{post}/moderate', [PostController::class, 'moderate']);
         Route::get('/reports', [ReportController::class, 'index']);
         Route::patch('/reports/{report}', [ReportController::class, 'update']);
     });
+
+    Route::middleware('admin')->group(function (): void {
+        Route::get('/institutional/users', [\App\Http\Controllers\InstitutionalController::class, 'index']);
+        Route::patch('/institutional/users/{user}', [\App\Http\Controllers\InstitutionalController::class, 'update']);
+    });
+
+    Route::middleware('institutional')->get('/institutional/access', fn (Request $request) => [
+        'user' => $request->user()->only(['id', 'name', 'email', 'username', 'role', 'verificado_em']),
+    ]);
 });

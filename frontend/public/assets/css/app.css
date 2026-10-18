@@ -571,3 +571,6 @@ button { cursor: pointer; }
   .ai-launcher img { width: 2.35rem; height: 2.35rem; }
   .rightbar .ai-card { right: .75rem; bottom: calc(4.8rem + env(safe-area-inset-bottom)); width: calc(100vw - 1.5rem); height: min(650px, calc(100vh - 6.2rem)); padding: 1rem; }
 }
+.profile-card__cover { background-size: cover; background-position: center; }
+.profile-banner-preview { min-height: 7rem; width: 100%; border-radius: var(--radius-sm); background: linear-gradient(135deg, #6b7968, #303d2b); object-fit: cover; }
+.profile-public-post video, .post video { display: block; max-width: 100%; width: 100%; border-radius: var(--radius-sm); background: #111; }

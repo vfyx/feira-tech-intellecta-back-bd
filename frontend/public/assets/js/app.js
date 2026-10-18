@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const boot = JSON.parse(document.querySelector('#app-state').textContent);
-  let state = boot.data, pendingMedia = null, pendingPoll = null, pendingAvatar = null, activeChat = null;
+  let state = boot.data, pendingMedia = null, pendingMediaType = null, pendingPoll = null, pendingAvatar = null, pendingBanner = null, bannerRemove = false, activeChat = null;
   const params = new URLSearchParams(location.search);
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -106,11 +106,14 @@
     if(button.matches('[data-ai-toggle],[data-ai-backdrop]')){const panel=$('#intellia-panel'),open=button.matches('[data-ai-backdrop]')?false:panel.hidden;panel.hidden=!open;panel.setAttribute('aria-hidden',String(!open));$('[data-ai-backdrop]').hidden=!open;$$('[data-ai-toggle]').forEach(b=>b.setAttribute('aria-expanded',String(open)));document.body.classList.toggle('ai-is-open',open);if(open){animate(panel);$('#ai-question').focus();}return;}
     if(!state){notify('Entre na sua conta para usar este recurso.');return;}
     if(button.matches('[data-media]')){
-      const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/gif,image/webp';
-      input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>2097152){notify('Selecione uma imagem de até 2 MB.');return;}const reader=new FileReader();reader.onload=()=>{pendingMedia=reader.result;attachments();};reader.onerror=()=>notify('Não foi possível ler a imagem.');reader.readAsDataURL(file);};input.click();return;
+      const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/ogg';
+      input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>2097152){notify('Selecione um arquivo de até 2 MB.');return;}if(!/^(image\/(png|jpeg|gif|webp)|video\/(mp4|webm|ogg))$/.test(file.type)){notify('Formato de mídia não permitido.');return;}const reader=new FileReader();reader.onload=()=>{pendingMedia=reader.result;pendingMediaType=file.type.startsWith('video/')?'video':'imagem';attachments();};reader.onerror=()=>notify('Não foi possível ler a mídia.');reader.readAsDataURL(file);};input.click();return;
     }
     if(button.matches('[data-avatar-picker]')){$('[data-avatar-input]').click();return;}
-    if(button.matches('[data-remove-media]')){pendingMedia=null;attachments();return;}
+    if(button.matches('[data-remove-media]')){pendingMedia=null;pendingMediaType=null;attachments();return;}
+    if(button.matches('[data-video-sound]')){const video=$('video',button.parentElement);video.muted=!video.muted;button.textContent=video.muted?'🔇':'🔊';button.setAttribute('aria-label',video.muted?'Ativar som':'Silenciar vídeo');return;}
+    if(button.matches('[data-banner-picker]')){$('[data-banner-input]').click();return;}
+    if(button.matches('[data-banner-remove]')){pendingBanner=null;bannerRemove=true;const preview=$('[data-banner-preview]');preview.replaceWith(Object.assign(document.createElement('div'),{className:'profile-banner-preview'}));return;}
     if(button.matches('[data-remove-poll]')){pendingPoll=null;attachments();return;}
     if(button.matches('[data-poll]')){dialog('Criar enquete','<form class="form-stack" data-poll-form><label class="form-label">Pergunta<input class="input" name="question" maxlength="300" required></label><label class="form-label">Opções (uma por linha, de 2 a 6)<textarea class="input" name="options" rows="6" required></textarea></label><button class="btn btn-primary">Anexar enquete</button></form>');return;}
     const card=button.closest('[data-post-id]'),id=card?.dataset.postId;

@@ -13,7 +13,7 @@ try {
     echo rawurlencode($page) . '">Tentar novamente</a></p></html>';
     exit;
 }
-if (!$data && !in_array($page, ['login', 'register', 'termos', 'privacidade-legal', 'ajuda'], true)) {
+if (!$data && !in_array($page, ['login', 'register', 'institutional-login', 'termos', 'privacidade-legal', 'ajuda'], true)) {
     header('Location: ?page=login');
     exit;
 }

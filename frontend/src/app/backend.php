@@ -99,7 +99,7 @@ function backend_state(): ?array
 
 function api_action(string $action, array $input): array
 {
-    if ($action === 'login' || $action === 'register') {
+    if ($action === 'login' || $action === 'register' || $action === 'institutional-login') {
         $body = [
             'email' => field($input, 'email', 255),
             // Senhas não são aparadas: espaços podem fazer parte delas.
@@ -114,7 +114,8 @@ function api_action(string $action, array $input): array
             $body['username'] = field($input, 'username', 30);
             $body['password_confirmation'] = $input['password_confirmation'] ?? null;
         }
-        $result = api_call('POST', '/auth/' . $action, $body, false);
+        $route = $action === 'institutional-login' ? '/auth/institutional-login' : '/auth/' . $action;
+        $result = api_call('POST', $route, $body, false);
         if (!is_string($result['token'] ?? null) || !preg_match('/\A\d+\|[a-zA-Z0-9]+\z/', $result['token'])) {
             fail('O servidor não confirmou o acesso.', 502);
         }
@@ -146,6 +147,14 @@ function api_action(string $action, array $input): array
             fail('Este recurso ainda precisa de integração. A preferência não foi alterada.', 501);
         }
         return api_call('POST', '/intellecta/action', $input);
+    }
+    if ($action === 'institutional-users') return api_call('GET', '/institutional/users');
+    if ($action === 'institutional-user-update') {
+        $id = (int) ($input['id'] ?? 0);
+        if ($id < 1) fail('Usuário inválido.');
+        return api_call('PATCH', '/institutional/users/' . $id, [
+            'role' => $input['role'] ?? null, 'verified' => (bool) ($input['verified'] ?? false),
+        ]);
     }
     fail('Este recurso ainda não está disponível nesta etapa.', 501);
 }

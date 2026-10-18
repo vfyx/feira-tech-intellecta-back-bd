@@ -7,7 +7,7 @@
 
 <div class="page-content">
   <section class="public-profile-hero card" aria-labelledby="public-profile-name">
-    <div class="public-profile-hero__identity">
+    <div class="public-profile-hero__identity"<?= !empty($person['banner']) ? ' style="background-image:url(' . e($person['banner']) . ')"' : '' ?>>
       <?php if (!empty($person['avatar'])): ?>
         <img class="avatar avatar--large avatar-image" src="<?= e($person['avatar']) ?>" alt="Foto de perfil de <?= e($person['name']) ?>">
       <?php else: ?>
@@ -15,9 +15,10 @@
       <?php endif; ?>
       <div class="public-profile-hero__copy">
         <span class="eyebrow">Membro desde <?= e(date('Y',strtotime($person['created']))) ?></span>
-        <h2 id="public-profile-name"><?= e($person['name']) ?></h2>
+        <h2 id="public-profile-name"><?= e($person['name']) ?><?php if (!empty($person['verified'])): ?> <span class="profile-verified" title="Professor verificado" aria-label="Professor verificado"><?= icon('check') ?></span><?php endif; ?></h2>
         <p class="profile-handle">@<?= e($person['username']) ?></p>
         <p><?= e($person['bio']) ?></p>
+        <?php if (!empty($person['schoolYear']) || !empty($person['course'])): ?><p><?= e(trim(($person['schoolYear'] ?? '') . ' · ' . ($person['course'] ?? ''), ' ·')) ?></p><?php endif; ?>
       </div>
     </div>
     <div class="public-profile-actions">

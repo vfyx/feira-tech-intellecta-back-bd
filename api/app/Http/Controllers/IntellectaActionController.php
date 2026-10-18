@@ -37,6 +37,37 @@ class IntellectaActionController extends Controller
             'post_id'=>$post, 'mensagem_id'=>$message, 'url'=>$post ? '?page=home&post='.$post : ($message ? '?page=chat' : '?page=notifications')]);
     }
 
+    private function decodeImage(string $value, string $label = 'Imagem'): array
+    {
+        abort_unless(
+            preg_match('#\Adata:image/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)\z#', $value, $match),
+            422,
+            $label . ' inválida.'
+        );
+        $bytes = base64_decode($match[2], true);
+        $info = $bytes ? @getimagesizefromstring($bytes) : false;
+        abort_unless(
+            $info && $info['mime'] === 'image/' . $match[1]
+                && strlen($bytes) <= 2097152 && $info[0] * $info[1] <= 25000000,
+            422,
+            $label . ' inválida ou muito grande.'
+        );
+        return [$bytes, $info];
+    }
+
+    private function decodeVideo(string $value): void
+    {
+        abort_unless(
+            preg_match('#\Adata:video/(mp4|webm|ogg);base64,([A-Za-z0-9+/=]+)\z#', $value, $match),
+            422,
+            'Vídeo inválido.'
+        );
+        $bytes = base64_decode($match[2], true);
+        abort_unless($bytes && strlen($bytes) <= 2097152, 422, 'Vídeo inválido ou muito grande.');
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        abort_unless(in_array($finfo->buffer($bytes), ['video/mp4', 'video/webm', 'video/ogg'], true), 422, 'Vídeo inválido.');
+    }
+
     public function __invoke(Request $request): array
     {
         $action = $request->validate(['action'=>['required', Rule::in([
@@ -55,18 +86,25 @@ class IntellectaActionController extends Controller
                     'bio'=>'nullable|string|max:1000','birthdate'=>'nullable|date_format:Y-m-d|before_or_equal:today',
                     'gender'=>['nullable',Rule::in(['feminino','masculino','outro'])],
                     'avatar'=>'nullable|string|max:2800000',
+                    'curso'=>['nullable', Rule::in(['Informática', 'Administração', 'Meio Ambiente'])],
+                    'ano_escolar'=>['nullable', Rule::in(['1º ano', '2º ano', '3º ano'])],
+                    'banner'=>'nullable|string|max:2800000',
+                    'banner_remove'=>'nullable|boolean',
                 ]);
                 $profileUpdate = ['name'=>$data['name'],'username'=>$data['username'],
-                    'bio'=>$data['bio']??'', 'nascimento'=>$data['birthdate']??null,'genero'=>$data['gender']??null,'updated_at'=>now()];
+                    'bio'=>$data['bio']??'', 'nascimento'=>$data['birthdate']??null,'genero'=>$data['gender']??null,
+                    'curso'=>$data['curso']??null, 'ano_escolar'=>$data['ano_escolar']??null, 'updated_at'=>now()];
                 if (array_key_exists('avatar', $data)) {
                     $avatar = $data['avatar'];
                 }
                 if (isset($avatar)) {
-                    abort_unless(preg_match('#\Adata:image/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)\z#', $avatar, $match), 422, 'Imagem inválida.');
-                    $bytes = base64_decode($match[2], true);
-                    $info = $bytes ? @getimagesizefromstring($bytes) : false;
-                    abort_unless($info && $info['mime'] === 'image/' . $match[1] && strlen($bytes) <= 2097152 && $info[0] * $info[1] <= 25000000, 422, 'Imagem inválida ou muito grande.');
+                    $this->decodeImage($avatar);
                     $profileUpdate['avatar_url'] = $avatar;
+                }
+                if (($data['banner_remove'] ?? false) === true) $profileUpdate['banner_url'] = null;
+                if (!empty($data['banner'])) {
+                    $this->decodeImage($data['banner'], 'Banner');
+                    $profileUpdate['banner_url'] = $data['banner'];
                 }
                 DB::table('usuarios')->where('id',$uid)->update($profileUpdate);
                 return ['message'=>'Perfil atualizado.'];
@@ -91,23 +129,33 @@ class IntellectaActionController extends Controller
             }
             if ($action === 'post') {
                 $data=$request->validate(['body'=>'nullable|string|max:5000','topic'=>'nullable|string|max:100',
-                    'media'=>'nullable|string|max:2800000','poll'=>'nullable|array','poll.question'=>'required_with:poll|string|max:300',
+                    'media'=>'nullable|string|max:2800000','media_type'=>['nullable', Rule::in(['imagem', 'video'])],
+                    'poll'=>'nullable|array','poll.question'=>'required_with:poll|string|max:300',
                     'poll.options'=>'required_with:poll|array|min:2|max:6','poll.options.*'=>'required|string|max:150|distinct']);
-                $body=trim($data['body']??''); $poll=$data['poll']??null; $image=$data['media']??null;
-                abort_if($body==='' && !$poll && !$image,422,'Escreva ou anexe algo antes de publicar.');
-                if ($image) {
-                    abort_unless(preg_match('#\Adata:image/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)\z#',$image,$match),422,'Imagem inválida.');
-                    $bytes=base64_decode($match[2],true); $info=$bytes ? @getimagesizefromstring($bytes) : false;
-                    abort_unless($info && $info['mime']==='image/'.$match[1] && strlen($bytes)<=2097152 && $info[0]*$info[1]<=25000000,422,'Imagem inválida ou muito grande.');
+                $body=trim($data['body']??''); $poll=$data['poll']??null; $media=$data['media']??null;
+                $mediaType=$data['media_type']??null;
+                abort_if($body==='' && !$poll && !$media,422,'Escreva ou anexe algo antes de publicar.');
+                if ($media) {
+                    abort_unless($mediaType, 422, 'Informe o tipo da mídia.');
+                    if ($mediaType === 'imagem') $this->decodeImage($media);
+                    else $this->decodeVideo($media);
                 }
                 $subject=DB::table('disciplinas')->where('name',$data['topic']??'')->value('id');
                 if (!$subject && !empty($data['topic']) && $data['topic']!=='Geral') abort(422,'Escolha uma disciplina disponível.');
                 if (!$subject) $subject=DB::table('disciplinas')->where('name','Ideias')->value('id') ?? DB::table('disciplinas')->orderBy('id')->value('id');
                 abort_unless($subject,422,'Cadastre uma disciplina antes de publicar.');
-                $content=$body ?: ($poll['question']??'Publicação com imagem');
+                $content=$body ?: ($poll['question']??'Publicação com mídia');
                 $id=DB::table('publicacoes')->insertGetId(['user_id'=>$uid,'subject_id'=>$subject,'title'=>mb_substr($content,0,200),
                     'content'=>$content,'status'=>'aprovado','created_at'=>now(),'updated_at'=>now()]);
-                if ($image) DB::table('midias_publicacoes')->insert(['post_id'=>$id,'tipo'=>'imagem','url'=>$image]);
+                if ($media) DB::table('midias_publicacoes')->insert(['post_id'=>$id,'tipo'=>$mediaType,'url'=>$media]);
+                preg_match_all('/(?<![\w@])@([a-z0-9_]{3,30})\b/i', $body, $matches);
+                foreach (array_unique(array_map('strtolower', $matches[1] ?? [])) as $mentioned) {
+                    $target = DB::table('usuarios')->whereRaw('LOWER(username) = ?', [$mentioned])->first();
+                    if ($target && (int) $target->id !== $uid && $this->visible($uid, (int) $target->id)
+                        && $this->publicProfile((int) $target->id)) {
+                        $this->notice((int) $target->id, $uid, 'mencao', $id);
+                    }
+                }
                 if ($poll) {
                     $qid=DB::table('enquetes')->insertGetId(['post_id'=>$id,'pergunta'=>trim($poll['question'])]);
                     foreach ($poll['options'] as $order=>$text) DB::table('opcoes_enquetes')->insert(['enquete_id'=>$qid,'texto'=>trim($text),'ordem'=>$order]);
@@ -133,6 +181,7 @@ class IntellectaActionController extends Controller
                     $table=['like'=>'curtidas','save'=>'publicacoes_salvas','repost'=>'republicacoes','mute'=>'publicacoes_ocultadas'][$action];
                     $result['active']=$this->toggle($table,['user_id'=>$uid,'post_id'=>$id]);
                     if ($action==='like' && $result['active']) $this->notice($post->user_id,$uid,'curtida',$id);
+                    if ($action==='repost' && $result['active']) $this->notice($post->user_id,$uid,'republicacao',$id);
                 }
                 return $result;
             }
