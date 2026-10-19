@@ -1,0 +1,26 @@
+CORRECAO DO CARREGAMENTO DA IMAGEM - INTELLECTA
+
+O ZIP original nao contem banco/postgres-pgvector-pg16.tar.
+PREPARAR.ps1 agora reutiliza pgvector/pgvector:pg16 se instalada;
+senao, carrega o TAR se disponivel; senao, baixa a imagem pela internet.
+Se houver falha, a preparacao para antes de iniciar/restaurar o banco.
+Uma imagem baixada pela tag pg16 pode diferir da imagem do pacote original.
+Para reproduzir a imagem original, obtenha o TAR original e confira seu hash
+em SHA256SUMS.txt. O manifesto original foi preservado; a entrada do TAR
+nao significa que ele esteja incluido neste ZIP.
+
+COMO APLICAR EM UMA INSTALACAO EXISTENTE
+1. Guarde uma copia do PREPARAR.ps1 antigo.
+2. Substitua apenas PREPARAR.ps1 na pasta original do projeto pelo corrigido.
+3. Abra o Docker Desktop e execute 1-PREPARAR.bat nessa mesma pasta.
+4. Aguarde PRONTO antes de abrir 2-INICIAR.bat.
+
+O restante do script foi preservado. Ele inicia o servico postgres e pode
+restaurar escola.dump quando a verificacao original encontra zero tabelas
+no schema atual. Essa verificacao nao e uma garantia geral de banco vazio.
+O patch nao adiciona exclusao de dados, migrations nem remocao de volumes.
+Mantenha compose.yaml, .env, nome do projeto e volume da instalacao existente.
+Nao use down -v, volume rm, prune --volumes ou migrate:fresh.
+
+O ZIP corrigido mantem os dados e configuracoes do original: guarde-o privado.
+Nenhum Docker, banco ou volume foi executado/modificado ao preparar a correcao.
