@@ -1,1 +1,9 @@
 banco/postgres-pgvector-pg16.tar
+
+# Arquivos locais gerados em execução
+/frontend/storage/sessions*/
+/api/storage/framework/cache/data/**
+/api/storage/framework/views/*
+/api/storage/framework/sessions/*
+/api/storage/logs/*
+!/api/storage/**/.gitignore

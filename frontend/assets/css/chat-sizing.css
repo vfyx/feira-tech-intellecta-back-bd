@@ -15,3 +15,7 @@
   .chat-layout > .conversation-list { height: auto; }
   .conversation-list > .conversation-list__items { flex: 0 1 auto; max-height: 14rem; }
 }
+
+/* Usa a largura disponível somente na página de conversas. */
+.page-content:has(> [data-chat-app]) { width: 100%; max-width: none; padding-inline: clamp(.75rem, 2vw, 1.5rem); }
+.chat-page-header { max-width: none; padding-inline: clamp(.75rem, 2vw, 1.5rem); }
