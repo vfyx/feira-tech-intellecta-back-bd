@@ -23,6 +23,9 @@ Route::get('/posts', [PostController::class, 'index']);
 Route::get('/posts/{post}', [PostController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/teacher-complaints', [\App\Http\Controllers\TeacherComplaintController::class, 'index']);
+    Route::post('/teacher-complaints', [\App\Http\Controllers\TeacherComplaintController::class, 'store'])->middleware('throttle:20,1');
+    Route::patch('/teacher-complaints/{id}', [\App\Http\Controllers\TeacherComplaintController::class, 'reply'])->whereNumber('id')->middleware('throttle:60,1');
     Route::post('/intellecta/action', \App\Http\Controllers\IntellectaActionController::class)->middleware('throttle:120,1');
     Route::get('/my/posts', [PostController::class, 'mine']);
     Route::get('/auth/me', [AuthController::class, 'me']);

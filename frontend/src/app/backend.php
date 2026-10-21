@@ -142,11 +142,18 @@ function api_action(string $action, array $input): array
         session_regenerate_id(true);
         return ['redirect' => '?page=login'];
     }
-    if (in_array($action, ['profile','setting','post','like','save','comment','vote','repost','mute','delete-post','follow','block','notify','report','message','clear-chat','read','password'], true)) {
+    if (in_array($action, ['profile','setting','post','like','save','comment','vote','repost','mute','delete-post','close-direct','open-direct','follow','block','notify','report','report-post','message','clear-chat','read','password'], true)) {
         if ($action === 'setting' && in_array($input['key'] ?? '', ['two-factor', 'email-updates'], true)) {
             fail('Este recurso ainda precisa de integração. A preferência não foi alterada.', 501);
         }
         return api_call('POST', '/intellecta/action', $input);
+    }
+    if ($action === 'complaints') return api_call('GET', '/teacher-complaints');
+    if ($action === 'complaint-create') return api_call('POST', '/teacher-complaints', $input);
+    if ($action === 'complaint-reply') {
+        $id = (int) ($input['id'] ?? 0);
+        if ($id < 1) fail('Reclamação inválida.');
+        return api_call('PATCH', '/teacher-complaints/' . $id, ['reply' => $input['reply'] ?? '']);
     }
     if ($action === 'institutional-users') return api_call('GET', '/institutional/users');
     if ($action === 'institutional-user-update') {

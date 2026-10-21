@@ -27,7 +27,7 @@ class IntellectaStateController extends Controller
         $prefs = DB::table('preferencias_usuarios')->where('user_id', $uid)->first();
         $settings = [];
         foreach ([
-            'motion' => ['movimento', true], 'compact-feed' => ['feed_compacto', false],
+            'light-theme' => ['tema_claro', false], 'motion' => ['movimento', true], 'compact-feed' => ['feed_compacto', false],
             'email-updates' => ['novidades_email', false], 'profile-public' => ['perfil_publico', true],
             'activity-status' => ['mostrar_atividade', true], 'personalized-feed' => ['feed_personalizado', true],
             'two-factor' => ['chave_adicional_ativa', false], 'login-alerts' => ['alertas_acesso', true],
@@ -60,6 +60,12 @@ class IntellectaStateController extends Controller
             'saved' => $this->ids(DB::table('publicacoes_salvas')->where('user_id', $uid)->pluck('post_id')),
             'muted' => $this->ids(DB::table('publicacoes_ocultadas')->where('user_id', $uid)->pluck('post_id')),
             'reposts' => $this->ids(DB::table('republicacoes')->where('user_id', $uid)->pluck('post_id')),
+            'closedDirect' => $this->ids(DB::table('directs_fechados as f')->where('f.user_id',$uid)
+                ->whereNotExists(function ($q) use ($uid) {
+                    $q->selectRaw('1')->from('mensagens as m')->join('conversas as c','c.id','=','m.conversa_id')
+                        ->whereColumn('m.remetente_id','f.target_id')->whereColumn('m.id','>','f.ultima_mensagem_id')
+                        ->where(fn($q)=>$q->where('c.usuario_1_id',$uid)->orWhere('c.usuario_2_id',$uid));
+                })->pluck('f.target_id')),
             'chatHidden' => [],
         ];
         $followCounts = DB::table('seguidores')->selectRaw('seguidor_id, count(*) as total')->groupBy('seguidor_id')->pluck('total', 'seguidor_id');

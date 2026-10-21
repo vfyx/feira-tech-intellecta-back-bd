@@ -71,8 +71,8 @@ class IntellectaActionController extends Controller
     public function __invoke(Request $request): array
     {
         $action = $request->validate(['action'=>['required', Rule::in([
-            'profile','setting','post','like','save','comment','vote','repost','mute','delete-post',
-            'follow','block','notify','report','message','clear-chat','read','password',
+            'profile','setting','post','like','save','comment','vote','repost','mute','delete-post','report-post',
+            'close-direct','open-direct','follow','block','notify','report','message','clear-chat','read','password',
         ])]])['action'];
         $uid = (int) $request->user()->id;
         return DB::transaction(function () use ($request, $action, $uid): array {
@@ -117,7 +117,7 @@ class IntellectaActionController extends Controller
                 return ['message'=>'Senha alterada. Outros acessos foram encerrados.'];
             }
             if ($action === 'setting') {
-                $map=['motion'=>'movimento','compact-feed'=>'feed_compacto','profile-public'=>'perfil_publico',
+                $map=['light-theme'=>'tema_claro','motion'=>'movimento','compact-feed'=>'feed_compacto','profile-public'=>'perfil_publico',
                     'activity-status'=>'mostrar_atividade','personalized-feed'=>'feed_personalizado','login-alerts'=>'alertas_acesso'];
                 $data=$request->validate(['key'=>['required',Rule::in(array_keys($map))],'value'=>'required|boolean']);
                 DB::table('preferencias_usuarios')->updateOrInsert(['user_id'=>$uid],[$map[$data['key']]=>$data['value'],'updated_at'=>now()]);
@@ -162,10 +162,17 @@ class IntellectaActionController extends Controller
                 }
                 return ['id'=>(string)$id,'message'=>'Publicação criada.'];
             }
-            if (in_array($action,['like','save','comment','vote','repost','mute','delete-post'],true)) {
+            if (in_array($action,['like','save','comment','vote','repost','mute','delete-post','report-post'],true)) {
                 $id=$request->validate(['id'=>'required|integer|min:1'])['id'];
                 $post=DB::table('publicacoes')->where('id',$id)->lockForUpdate()->first();
                 abort_unless($post && $this->visible($uid,$post->user_id) && ($post->user_id===$uid || ($post->status==='aprovado' && $this->publicProfile($post->user_id))),404,'Publicação não encontrada.');
+                if ($action==='report-post') {
+                    abort_if((int) $post->user_id === $uid,403,'Você não pode denunciar sua própria publicação.');
+                    $reason=trim($request->validate(['reason'=>'required|string|max:2000'])['reason']);
+                    abort_if($reason==='',422,'Descreva o motivo da denúncia.');
+                    DB::table('denuncias_publicacoes')->insert(['denunciante_id'=>$uid,'post_id'=>$id,'autor_id'=>$post->user_id,'conteudo'=>$post->content,'motivo'=>$reason]);
+                    return ['message'=>'Denúncia da publicação registrada.'];
+                }
                 if ($action==='delete-post') { abort_unless($post->user_id===$uid,403); DB::table('publicacoes')->where('id',$id)->delete(); }
                 elseif ($action==='comment') {
                     $body=trim($request->validate(['body'=>'required|string|max:2000'])['body']); abort_if($body==='',422);
@@ -188,6 +195,12 @@ class IntellectaActionController extends Controller
             $target=(int)$request->validate(['target'=>'required|integer|min:1|exists:usuarios,id'])['target'];
             abort_if($target===$uid,422,'Perfil inválido.');
             if ($action!=='block') abort_unless($this->visible($uid,$target),403,'Este perfil está bloqueado.');
+            if ($action==='close-direct' || $action==='open-direct') {
+                $key=['user_id'=>$uid,'target_id'=>$target];
+                if ($action==='open-direct') DB::table('directs_fechados')->where($key)->delete();
+                else DB::table('directs_fechados')->updateOrInsert($key,['ultima_mensagem_id'=>DB::table('mensagens')->max('id') ?? 0]);
+                return ['message'=>$action==='close-direct'?'Mensagem direta fechada.':'Mensagem direta aberta.'];
+            }
             if ($action==='block') {
                 $result['active']=$this->toggle('bloqueios',['bloqueador_id'=>$uid,'bloqueado_id'=>$target]);
                 if ($result['active']) {

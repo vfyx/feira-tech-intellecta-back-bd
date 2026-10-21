@@ -49,7 +49,7 @@ function render_page_head(string $title): void
     $assetPath = ($basePath === '' || $basePath === '/') ? '/assets' : $basePath . '/assets';
     ?>
     <!doctype html>
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-theme="<?= !empty($GLOBALS['clientState']['data']['account']['settings']['light-theme']) ? 'light' : 'dark' ?>">
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -58,6 +58,7 @@ function render_page_head(string $title): void
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+      <?php if ($title === 'reclamacoes'): ?><script src="<?= e($assetPath) ?>/js/complaints.js?v=20261020" defer></script><?php endif; ?>
       <link rel="stylesheet" href="<?= e($assetPath) ?>/css/styles.css?v=<?= filemtime(__DIR__ . '/../../../assets/css/styles.css') ?>">
       <script src="<?= e($assetPath) ?>/js/app.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/app.js') ?>" defer></script>
     </head>
