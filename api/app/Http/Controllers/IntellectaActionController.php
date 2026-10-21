@@ -130,15 +130,19 @@ class IntellectaActionController extends Controller
             if ($action === 'post') {
                 $data=$request->validate(['body'=>'nullable|string|max:5000','topic'=>'nullable|string|max:100',
                     'media'=>'nullable|string|max:2800000','media_type'=>['nullable', Rule::in(['imagem', 'video'])],
+                    'medias'=>'nullable|array|max:6','medias.*'=>'required|string|max:2800000',
                     'poll'=>'nullable|array','poll.question'=>'required_with:poll|string|max:300',
                     'poll.options'=>'required_with:poll|array|min:2|max:6','poll.options.*'=>'required|string|max:150|distinct']);
                 $body=trim($data['body']??''); $poll=$data['poll']??null; $media=$data['media']??null;
-                $mediaType=$data['media_type']??null;
-                abort_if($body==='' && !$poll && !$media,422,'Escreva ou anexe algo antes de publicar.');
-                if ($media) {
+                $medias=$data['medias'] ?? ($media ? [$media] : []);
+                $mediaType=$data['media_type']??(count($medias) > 0 ? 'imagem' : null);
+                abort_if($body==='' && !$poll && empty($medias),422,'Escreva ou anexe algo antes de publicar.');
+                if (!empty($medias)) {
                     abort_unless($mediaType, 422, 'Informe o tipo da mídia.');
-                    if ($mediaType === 'imagem') $this->decodeImage($media);
-                    else $this->decodeVideo($media);
+                    foreach ($medias as $m) {
+                        if ($mediaType === 'imagem') $this->decodeImage($m);
+                        else $this->decodeVideo($m);
+                    }
                 }
                 $subject=DB::table('disciplinas')->where('name',$data['topic']??'')->value('id');
                 if (!$subject && !empty($data['topic']) && $data['topic']!=='Geral') abort(422,'Escolha uma disciplina disponível.');
@@ -147,7 +151,11 @@ class IntellectaActionController extends Controller
                 $content=$body ?: ($poll['question']??'Publicação com mídia');
                 $id=DB::table('publicacoes')->insertGetId(['user_id'=>$uid,'subject_id'=>$subject,'title'=>mb_substr($content,0,200),
                     'content'=>$content,'status'=>'aprovado','created_at'=>now(),'updated_at'=>now()]);
-                if ($media) DB::table('midias_publicacoes')->insert(['post_id'=>$id,'tipo'=>$mediaType,'url'=>$media]);
+                if (!empty($medias)) {
+                    foreach ($medias as $m) {
+                        DB::table('midias_publicacoes')->insert(['post_id'=>$id,'tipo'=>$mediaType,'url'=>$m]);
+                    }
+                }
                 preg_match_all('/(?<![\w@])@([a-z0-9_]{3,30})\b/i', $body, $matches);
                 foreach (array_unique(array_map('strtolower', $matches[1] ?? [])) as $mentioned) {
                     $target = DB::table('usuarios')->whereRaw('LOWER(username) = ?', [$mentioned])->first();
