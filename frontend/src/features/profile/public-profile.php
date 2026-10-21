@@ -31,7 +31,7 @@
       <div class="profile-card__identity public-profile-copy">
         <div><span class="eyebrow">Membro desde <?= e(date('Y',strtotime($person['created']))) ?></span>
         <h2 id="public-profile-name"><?= e($person['name']) ?><?php if (!empty($person['verified'])): ?> <span class="profile-verified" title="Professor verificado" aria-label="Professor verificado"><?= icon('check') ?></span><?php endif; ?></h2>
-        <p class="profile-handle">@<?= e($person['username']) ?></p>
+        <p class="profile-handle">@<?= e($person['username']) ?> <?= founder_badge_html($person) ?></p>
         <p><?= e($person['bio']) ?></p>
         <?php if (!empty($person['schoolYear']) || !empty($person['course'])): ?><p><?= e(trim(($person['schoolYear'] ?? '') . ' · ' . ($person['course'] ?? ''), ' ·')) ?></p><?php endif; ?>
       </div></div>

@@ -34,7 +34,7 @@
         <div>
           <span class="eyebrow">Perfil público</span>
           <h2 id="profile-name"><?= e($account['name']) ?></h2>
-          <p class="profile-handle">@<?= e($account['username']) ?><?php if (!empty($account['verified'])): ?> <span class="profile-verified" title="Professor verificado" aria-label="Professor verificado"><?= icon('check') ?></span><?php endif; ?></p>
+          <p class="profile-handle">@<?= e($account['username']) ?><?php if (!empty($account['verified'])): ?> <span class="profile-verified" title="Professor verificado" aria-label="Professor verificado"><?= icon('check') ?></span><?php endif; ?> <?= founder_badge_html($account) ?></p>
         </div>
         <span class="profile-presence"><i></i> online agora</span>
       </div>

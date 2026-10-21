@@ -309,7 +309,7 @@
       let feed=state.feed.filter(p=>!a.muted.includes(p.id));
       if(params.get('topic'))feed=feed.filter(p=>p.topic===params.get('topic'));
       if(params.get('post'))feed=state.feed.filter(p=>p.id===params.get('post'));
-      if(a.settings['personalized-feed'])feed.sort((x,y)=>Number(a.following.includes(y.author))-Number(a.following.includes(x.author)));
+      // Mantém a ordem cronológica enviada pela API (created_at e id decrescentes).
       $('.home-feed').innerHTML=postsHTML(feed);
     }
     if(boot.page==='saved')$('.page-content').innerHTML=`<div class="list">${postsHTML(state.feed.filter(p=>a.saved.includes(p.id)))}</div>`;

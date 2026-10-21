@@ -20,3 +20,11 @@ function avatar_html(array $person, string $classes = ''): string
     }
     return '<div class="' . e($class) . '">' . e(initials($person['name'] ?? '?')) . '</div>';
 }
+
+
+function founder_badge_html(array $person): string
+{
+    $username = strtolower(ltrim(trim((string) ($person['username'] ?? '')), '@'));
+    if (!in_array($username, ['miguel', 'bloriun', 'carvaalhooxz_', 'ana_vicente', 'arycano'], true)) return '';
+    return '<span class="founder-badge" title="Fundador do Intellecta"><span aria-hidden="true">✦</span> Founder</span>';
+}

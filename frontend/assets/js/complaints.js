@@ -29,7 +29,7 @@
       const result = await api('complaints');
       if (form) {
         const select = find('[name="teacher"]', form), selected = select.value;
-        select.innerHTML = '<option value="">Selecione um professor</option>'+result.teachers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+        select.innerHTML = '<option value="">Selecione um professor</option>'+[...result.teachers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity:'base'})).map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
         select.value = selected; select.disabled = !result.teachers.length;
         find('[type="submit"]', form).disabled = !result.teachers.length;
         if (!result.teachers.length) { select.innerHTML = '<option value="">Nenhum professor cadastrado</option>'; }
