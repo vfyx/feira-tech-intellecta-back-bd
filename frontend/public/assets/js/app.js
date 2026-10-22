@@ -1,8 +1,7 @@
 'use strict';
 (() => {
   const boot = JSON.parse(document.querySelector('#app-state').textContent);
-  let state = boot.data, pendingMedia = [], pendingMediaType = null, pendingPoll = null, pendingAvatar = null, pendingBanner = null, bannerRemove = false, activeChat = null, composerCarousel = null;
-  const activeCarousels = [];
+  let state = boot.data, pendingMedia = null, pendingMediaType = null, pendingPoll = null, pendingAvatar = null, pendingBanner = null, bannerRemove = false, activeChat = null;
   const params = new URLSearchParams(location.search);
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -297,15 +296,7 @@
   function postHTML(p) {
     const a=state.account, saved=a.saved.includes(p.id), reposted=a.reposts.includes(p.id), author=p.author===a.id ? a : person(p.author);
     const badge=author?.verified?'<span class="profile-verified" title="Professor verificado" aria-label="Professor verificado">✓</span>':'';
-    let media='';
-    if(p.mediaType==='video'){
-      media=`<div class="post-video"><video src="${esc(p.media)}" controls playsinline preload="metadata"></video><button type="button" class="btn btn-ghost video-sound" data-video-sound aria-label="Ativar som">🔇</button></div>`;
-    }else if(Array.isArray(p.mediaList)&&p.mediaList.length>1){
-      const urls=p.mediaList.map(m=>m.url);
-      media=`<div class="post-carousel-wrapper" data-carousel-urls="${esc(JSON.stringify(urls))}"></div>`;
-    }else if(p.media){
-      media=`<img src="${esc(p.media)}" alt="Imagem anexada à publicação" loading="lazy" width="480" style="max-width:100%;height:auto;border-radius:var(--radius-md,14px)">`;
-    }
+    const media=p.mediaType==='video'?`<div class="post-video"><video src="${esc(p.media)}" controls playsinline preload="metadata"></video><button type="button" class="btn btn-ghost video-sound" data-video-sound aria-label="Ativar som">🔇</button></div>`:(p.media?`<img src="${esc(p.media)}" alt="Imagem anexada à publicação" loading="lazy" width="480" style="max-width:100%;height:auto">`:'');
     return `<article class="card post" data-filter-item data-post-id="${esc(p.id)}" id="post-${esc(p.id)}"><div class="post__head">${avatarHTML(author || p)}<div class="post__meta"><a href="?page=public-profile&user=${encodeURIComponent(p.username)}"><strong>${esc(p.name)} ${badge}</strong></a><span>@${esc(p.username)} · ${esc(p.time)}</span></div><button class="btn btn-ghost" type="button" data-post-menu aria-label="Opções da publicação">•••</button></div><p class="post__body">${p.status&&p.status!=='aprovado'?`<small class="muted">${p.status==='pendente'?'Aguardando moderação':'Publicação não aprovada'} · visível apenas para você</small><br>`:''}${bodyHTML(p.body)}</p>${p.topic?`<a class="text-link" href="?page=home&topic=${encodeURIComponent(p.topic)}">#${esc(p.topic)}</a>`:''}${media}${p.poll?`<section class="settings-group"><h3>${esc(p.poll.question)}</h3>${p.poll.options.map((o,i)=>`<button class="btn btn-secondary" type="button" data-vote="${i}" aria-pressed="${p.poll.choice===i}">${p.poll.choice===i?'✓ ':''}${esc(o)} · ${p.poll.counts[i]} voto(s)</button>`).join('')}</section>`:''}<div class="post__footer"><button class="btn btn-ghost ${p.isLiked?'liked':''}" type="button" data-like aria-label="Curtir" aria-pressed="${p.isLiked}">♡ <span data-count>${p.likes}</span></button><button class="btn btn-ghost" type="button" data-comments aria-label="Comentários">${boot.icons.message} ${p.comments}</button><button class="btn btn-ghost ${reposted?'saved':''}" type="button" data-repost aria-label="${reposted?'Desfazer republicação':'Republicar publicação'}" aria-pressed="${reposted}">↗ ${reposted?'Republicado':'Republicar'}</button><button class="btn btn-ghost ${saved?'saved':''}" type="button" data-save aria-label="Salvar publicação" aria-pressed="${saved}">${boot.icons.bookmark}</button><span class="post__stats">${esc(p.time)}</span></div></article>`;
   }
   function empty(text) { return `<section class="empty-state"><p>${esc(text)}</p></section>`; }
@@ -336,35 +327,6 @@
       const follow=$('[data-follow]'); follow.textContent=a.following.includes(p.id)?'Seguindo':'Seguir';follow.classList.toggle('is-following',a.following.includes(p.id));follow.setAttribute('aria-pressed',String(a.following.includes(p.id)));follow.disabled=p.id===a.id;
       $('[data-profile-notify]').classList.toggle('is-active',a.notify.includes(p.id));$('[data-profile-notify]').setAttribute('aria-pressed',String(a.notify.includes(p.id)));
     }
-    activeCarousels.forEach(c=>{try{c.destroy();}catch(e){}});
-    activeCarousels.length=0;
-    $$('[data-carousel-urls]').forEach(wrap=>{
-      try{
-        const urls=JSON.parse(wrap.dataset.carouselUrls||'[]');
-        if(urls.length>1&&window.DepthCarousel){
-          const carousel=new window.DepthCarousel(wrap,{
-            items:urls,
-            cardWidth:260,
-            cardHeight:330,
-            depth:180,
-            spread:70,
-            tilt:18,
-            tiltDirection:'right',
-            perspective:1400,
-            visibleCards:4,
-            falloff:0.2,
-            blur:5,
-            tint:'#0b0e0a',
-            autoplay:false,
-            loop:true,
-            showControls:true,
-            showIndicators:true,
-            showBadge:true
-          });
-          activeCarousels.push(carousel);
-        }
-      }catch(err){console.error('Falha ao inicializar carrossel:',err);}
-    });
   }
   function renderNotifications() {
     const unread=state.notifications.filter(n=>!n.read).length;
@@ -479,49 +441,12 @@
     if(button.matches('[data-help-contact]'))return dialog('Contato da instalação','<p>Este projeto não possui uma equipe de suporte externa conectada. Procure o responsável pelo servidor ou consulte o README incluído no projeto.</p>');
     if(button.matches('[data-ai-toggle],[data-ai-backdrop]')){const panel=$('#intellia-panel'),open=button.matches('[data-ai-backdrop]')?false:panel.hidden;panel.hidden=!open;panel.setAttribute('aria-hidden',String(!open));$('[data-ai-backdrop]').hidden=!open;$$('[data-ai-toggle]').forEach(b=>b.setAttribute('aria-expanded',String(open)));document.body.classList.toggle('ai-is-open',open);if(open){animate(panel);$('#ai-question').focus();}return;}
     if(!state){notify('Entre na sua conta para usar este recurso.');return;}
-    if(button.matches('[data-media],[data-add-more-media]')){
-      const input=document.createElement('input');input.type='file';input.multiple=true;input.accept='image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/ogg';
-      input.onchange=async()=>{
-        const files=Array.from(input.files||[]);if(!files.length)return;
-        const hasVideo=files.some(f=>f.type.startsWith('video/'));
-        if(hasVideo){
-          if(files.length>1||pendingMedia.length>0){notify('Vídeos devem ser publicados individualmente (sem carrossel).');return;}
-          const file=files[0];
-          if(file.size>2097152){notify('Selecione um vídeo de até 2 MB.');return;}
-          if(!/^(video\/(mp4|webm|ogg))$/.test(file.type)){notify('Formato de vídeo não permitido.');return;}
-          const reader=new FileReader();
-          reader.onload=()=>{pendingMedia=[{url:reader.result,type:'video',name:file.name}];pendingMediaType='video';attachments();};
-          reader.onerror=()=>notify('Não foi possível ler o vídeo.');
-          reader.readAsDataURL(file);
-          return;
-        }
-        if(pendingMediaType==='video'){pendingMedia=[];pendingMediaType=null;}
-        const remaining=6-pendingMedia.length;
-        if(remaining<=0){notify('Você já atingiu o limite de 6 imagens.');return;}
-        const toProcess=files.slice(0,remaining);
-        if(files.length>remaining){notify(`Limite máximo de 6 fotos. Adicionando as primeiras ${remaining}.`);}
-        for(const file of toProcess){
-          if(file.size>2097152){notify(`O arquivo "${file.name}" ultrapassa 2 MB.`);continue;}
-          if(!/^(image\/(png|jpeg|gif|webp))$/.test(file.type)){notify(`Formato do arquivo "${file.name}" não permitido.`);continue;}
-          try{
-            const result=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
-            pendingMedia.push({url:result,type:'imagem',name:file.name});pendingMediaType='imagem';
-          }catch{notify(`Não foi possível ler a imagem "${file.name}".`);}
-        }
-        attachments();
-      };input.click();return;
+    if(button.matches('[data-media]')){
+      const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/ogg';
+      input.onchange=async()=>{const file=input.files[0];if(!file)return;if(file.size>2097152){notify('Selecione um arquivo de até 2 MB.');return;}if(!/^(image\/(png|jpeg|gif|webp)|video\/(mp4|webm|ogg))$/.test(file.type)){notify('Formato de mídia não permitido.');return;}const reader=new FileReader();reader.onload=()=>{pendingMedia=reader.result;pendingMediaType=file.type.startsWith('video/')?'video':'imagem';attachments();};reader.onerror=()=>notify('Não foi possível ler a mídia.');reader.readAsDataURL(file);};input.click();return;
     }
     if(button.matches('[data-avatar-picker]')){$('[data-avatar-input]').click();return;}
-    if(button.matches('[data-remove-media]')){
-      const idx=button.dataset.removeIndex;
-      if(idx!==undefined&&idx!==null&&idx!==''){
-        pendingMedia.splice(Number(idx),1);
-        if(pendingMedia.length===0)pendingMediaType=null;
-      }else{
-        pendingMedia=[];pendingMediaType=null;
-      }
-      attachments();return;
-    }
+    if(button.matches('[data-remove-media]')){pendingMedia=null;pendingMediaType=null;attachments();return;}
     if(button.matches('[data-video-sound]')){const video=$('video',button.parentElement);video.muted=!video.muted;button.textContent=video.muted?'🔇':'🔊';button.setAttribute('aria-label',video.muted?'Ativar som':'Silenciar vídeo');return;}
     if(button.matches('[data-banner-picker]')){$('[data-banner-input]').click();return;}
     if(button.matches('[data-banner-remove]')){pendingBanner=null;bannerRemove=true;const preview=$('[data-banner-preview]');const placeholder=Object.assign(document.createElement('div'),{className:'profile-banner-preview'});placeholder.setAttribute('data-banner-preview','');preview.replaceWith(placeholder);return;}
@@ -569,31 +494,7 @@
     if(button.matches('[data-delete-account]')){if(!confirm('Excluir sua conta, publicações e mensagens? Esta ação não pode ser desfeita.'))return;const password=state.account.demo?'':prompt('Confirme sua senha para excluir a conta:');if(password===null)return;location.assign((await api('delete-account',{current_password:password})).redirect);return;}
     if(button.matches('[data-ai-prompt]')){$('#ai-question').value=button.dataset.aiPrompt;$('[data-ai-form]').requestSubmit();return;}
   }
-  function attachments() {
-    const box=$('[data-attachments]');if(!box)return;
-    if(composerCarousel){composerCarousel.destroy();composerCarousel=null;}
-    let content='';
-    if(pendingMedia.length===1&&pendingMediaType==='video'){
-      content=`<div class="composer-media-manager"><div class="composer-media-manager__header"><span class="composer-media-manager__title">Vídeo anexado</span><button type="button" class="btn btn-ghost" data-remove-media>Remover</button></div><video src="${esc(pendingMedia[0].url)}" controls muted playsinline style="max-width:100%;max-height:240px;border-radius:var(--radius-sm,9px)"></video></div>`;
-    }else if(pendingMedia.length===1&&pendingMediaType==='imagem'){
-      content=`<div class="composer-media-manager"><div class="composer-media-manager__header"><span class="composer-media-manager__title">1 Foto anexada</span><div style="display:flex;gap:6px"><button type="button" class="btn btn-ghost" data-add-more-media>+ Adicionar mais fotos</button><button type="button" class="btn btn-ghost" data-remove-media>Remover</button></div></div><div class="composer-media-grid"><div class="composer-media-thumb"><img src="${esc(pendingMedia[0].url)}" alt="Foto 1"><button type="button" class="composer-media-thumb__remove" data-remove-media data-remove-index="0" aria-label="Remover foto">✕</button><span class="composer-media-thumb__num">1/6</span></div><button type="button" class="composer-media-add-btn" data-add-more-media aria-label="Adicionar foto"><span>+</span><span>Adicionar</span></button></div><img src="${esc(pendingMedia[0].url)}" style="max-width:100%;max-height:260px;object-fit:cover;border-radius:var(--radius-sm,9px);display:block" alt="Prévia da foto"></div>`;
-    }else if(pendingMedia.length>1){
-      content=`<div class="composer-media-manager"><div class="composer-media-manager__header"><span class="composer-media-manager__title">Carrossel 3D (${pendingMedia.length} de 6 fotos)</span><div style="display:flex;gap:6px">${pendingMedia.length<6?'<button type="button" class="btn btn-ghost" data-add-more-media>+ Adicionar fotos</button>':''}<button type="button" class="btn btn-ghost" data-remove-media>Remover tudo</button></div></div><div class="composer-media-manager__preview" data-composer-carousel></div><div class="composer-media-grid">${pendingMedia.map((m,i)=>`<div class="composer-media-thumb"><img src="${esc(m.url)}" alt="Foto ${i+1}"><button type="button" class="composer-media-thumb__remove" data-remove-media data-remove-index="${i}" aria-label="Remover foto ${i+1}">✕</button><span class="composer-media-thumb__num">${i+1}</span></div>`).join('')}${pendingMedia.length<6?`<button type="button" class="composer-media-add-btn" data-add-more-media aria-label="Adicionar mais foto"><span>+</span><span>Adicionar</span></button>`:''}</div></div>`;
-    }
-    if(pendingPoll){content+=`<p style="margin-top:0.5rem">Enquete: ${esc(pendingPoll.question)} <button type="button" class="btn btn-ghost" data-remove-poll>Remover</button></p>`;}
-    box.innerHTML=content;animate(box);
-    if(pendingMedia.length>1&&window.DepthCarousel){
-      const previewEl=$('[data-composer-carousel]',box);
-      if(previewEl){
-        composerCarousel=new window.DepthCarousel(previewEl,{
-          items:pendingMedia.map(m=>m.url),
-          cardWidth:230,cardHeight:280,depth:160,spread:60,tilt:18,tiltDirection:'right',
-          perspective:1400,visibleCards:4,falloff:0.2,blur:4,tint:'#0b0e0a',
-          autoplay:false,loop:true,showControls:true,showIndicators:true,showBadge:true
-        });
-      }
-    }
-  }
+  function attachments() {const box=$('[data-attachments]');const preview=pendingMediaType==='video'?`<video src="${esc(pendingMedia)}" controls muted playsinline width="240"></video>`:`<img src="${esc(pendingMedia)}" width="160" style="max-width:100%;height:auto" alt="Prévia do anexo">`;box.innerHTML=(pendingMedia?`<p>${pendingMediaType==='video'?'Vídeo':'Imagem'} anexado <button type="button" class="btn btn-ghost" data-remove-media>Remover</button></p>${preview}`:'')+(pendingPoll?`<p>Enquete: ${esc(pendingPoll.question)} <button type="button" class="btn btn-ghost" data-remove-poll>Remover</button></p>`:'');animate(box);}
   document.addEventListener('click',async event=>{
     const button=event.target.closest('button,a[data-password-recovery],a[data-demo-login],a[data-public-info],a[data-help-contact],[data-ai-backdrop]');if(!button)return;
     if(button.type==='submit'&&button.form)return;
@@ -609,18 +510,7 @@
       else if(form.matches('[data-recover-form]')){const result=await api('recover',values);form.closest('dialog').close();await finishAuth(result);}
       else if(form.matches('[data-profile-form]')){if(pendingAvatar)values.avatar=pendingAvatar;if(pendingBanner)values.banner=pendingBanner;if(bannerRemove)values.banner_remove=true;await api('profile',values);location.assign('?page=profile');}
       else if(form.matches('[data-password-form]')){notify((await api('password',values)).message);form.reset();}
-      else if(form.matches('[data-post-form]')){
-        const urls=pendingMedia.map(m=>m.url);
-        const result=await api('post',{
-          body:$('textarea',form).value,
-          topic:values.topic,
-          media:urls.length>0?urls[0]:null,
-          medias:urls.length>0?urls:null,
-          media_type:pendingMediaType,
-          poll:pendingPoll
-        });
-        form.reset();pendingMedia=[];pendingMediaType=pendingPoll=null;attachments();await refresh();animate($('.home-feed article'));notify(result.message);
-      }
+      else if(form.matches('[data-post-form]')){const result=await api('post',{body:$('textarea',form).value,topic:values.topic,media:pendingMedia,media_type:pendingMediaType,poll:pendingPoll});form.reset();pendingMedia=pendingMediaType=pendingPoll=null;attachments();await refresh();animate($('.home-feed article'));notify(result.message);}
       else if(form.matches('[data-poll-form]')){const options=values.options.split('\n').map(x=>x.trim()).filter(Boolean);if(options.length<2||options.length>6||new Set(options).size!==options.length)throw new Error('Informe de 2 a 6 opções diferentes.');pendingPoll={question:values.question,options};form.closest('dialog').close();attachments();}
       else if(form.matches('[data-comment-form]')){await api('comment',{id:form.dataset.id,body:values.body});form.closest('dialog').close();await refresh();notify('Comentário adicionado.');}
       else if(form.matches('[data-chat-form]')){await api('message',{target:activeChat,body:$('input',form).value});form.reset();await refresh();$('[data-chat-messages]').scrollTop=$('[data-chat-messages]').scrollHeight;}

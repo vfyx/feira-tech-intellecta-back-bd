@@ -60,8 +60,6 @@ function render_page_head(string $title): void
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
       <?php if ($title === 'reclamacoes'): ?><script src="<?= e($assetPath) ?>/js/complaints.js?v=20261021" defer></script><?php endif; ?>
       <link rel="stylesheet" href="<?= e($assetPath) ?>/css/styles.css?v=<?= filemtime(__DIR__ . '/../../../assets/css/styles.css') ?>">
-      <script src="<?= e($assetPath) ?>/js/vendor/gsap.min.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/vendor/gsap.min.js') ?>"></script>
-      <script src="<?= e($assetPath) ?>/js/depth-carousel.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/depth-carousel.js') ?>" defer></script>
       <script src="<?= e($assetPath) ?>/js/app.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/app.js') ?>" defer></script>
     </head>
     <body>
