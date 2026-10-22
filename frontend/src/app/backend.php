@@ -190,9 +190,9 @@ function backend_start(): void
     try {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail('Use POST.', 405);
         if (!hash_equals($_SESSION['csrf'], $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '')) fail('Recarregue a página para continuar.', 403);
-        if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 3200000) fail('Requisição muito grande.', 413);
-        $raw = file_get_contents('php://input', false, null, 0, 3200001);
-        if (strlen($raw) > 3200000) fail('Requisição muito grande.', 413);
+        if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 9000000) fail('Requisição muito grande.', 413);
+        $raw = file_get_contents('php://input', false, null, 0, 9000001);
+        if (strlen($raw) > 9000000) fail('Requisição muito grande.', 413);
         $input = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
         if (!is_array($input)) fail('Requisição inválida.');
         echo json_encode(api_action(field($input, 'action', 40), $input), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);

@@ -120,6 +120,9 @@ class IntellectaStateController extends Controller
                     'choice' => $choice === false ? null : $choice,
                 ];
             }
+            $mediaList = $media->get($post->id, collect())->filter(fn ($m) =>
+                $m->tipo === 'imagem' && preg_match('#^(?:https?://|/(?!/)|data:image/(?:png|jpeg|gif|webp);base64,)#i', $m->url)
+            )->map(fn ($m) => ['url' => $m->url, 'type' => $m->tipo])->values()->all();
             $attachment = $media->get($post->id, collect())->first();
             $mediaUrl = $attachment?->url;
             $mediaType = $attachment?->tipo;
@@ -133,7 +136,7 @@ class IntellectaStateController extends Controller
                 'body' => $post->content, 'created' => $post->created_at, 'time' => $this->time($post->created_at),
                 'topic' => $post->topic, 'status' => $post->status, 'likes' => $liked->count(), 'comments' => count($replies),
                 'isLiked' => $liked->contains('user_id', $uid), 'replies' => $replies,
-                'media' => $mediaUrl, 'mediaType' => $mediaUrl ? $mediaType : null, 'poll' => $poll,
+                'mediaList' => $mediaList, 'media' => $mediaUrl, 'mediaType' => $mediaUrl ? $mediaType : null, 'poll' => $poll,
             ];
         })->all();
 
