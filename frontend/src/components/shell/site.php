@@ -59,6 +59,8 @@ function render_page_head(string $title): void
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
       <?php if ($title === 'reclamacoes'): ?><script src="<?= e($assetPath) ?>/js/complaints.js?v=20261021" defer></script><?php endif; ?>
+      <?php if ($title === 'admin-institucional'): ?><script src="<?= e($assetPath) ?>/js/admin.js?v=20261023" defer></script><link rel="stylesheet" href="<?= e($assetPath) ?>/css/admin.css?v=20261023"><?php endif; ?>
+      <?php if ($title === 'moderacao'): ?><script src="<?= e($assetPath) ?>/js/moderation.js?v=20261022" defer></script><?php endif; ?>
       <link rel="stylesheet" href="<?= e($assetPath) ?>/css/styles.css?v=<?= filemtime(__DIR__ . '/../../../assets/css/styles.css') ?>">
       <script src="<?= e($assetPath) ?>/js/vendor/gsap.min.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/vendor/gsap.min.js') ?>"></script>
       <script src="<?= e($assetPath) ?>/js/depth-carousel.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/depth-carousel.js') ?>" defer></script>
@@ -116,10 +118,13 @@ function render_sidebar(string $page, array $account): void
         <?php foreach ($items as $key => [$icon, $label]): ?>
           <a class="nav-item <?= $page === $key ? 'active' : '' ?>" href="?page=<?= e($key) ?>" title="<?= e($label) ?>" aria-label="<?= e($label) ?>" <?= $page === $key ? 'aria-current="page"' : '' ?>>
             <span class="nav-icon"><?= icon($icon) ?></span><?= e($label) ?>
+            <?php if ($key === 'chat'): ?><span class="dm-unread" data-dm-unread hidden></span><?php endif; ?>
             <?php if ($key === 'notifications'): ?><span class="nav-item__count" data-unread-count>0</span><?php endif; ?>
           </a>
         <?php endforeach; ?>
       </nav>
+      <?php if (($account['role'] ?? '') === 'admin'): ?><a class="nav-item" href="?page=admin-institucional"><?= icon('settings') ?> Administração</a><?php endif; ?>
+      <?php if (in_array($account['role'] ?? '', ['moderador','admin'], true)): ?><a class="nav-item" href="?page=moderacao"><?= icon('flag') ?> Moderação</a><?php endif; ?>
       <nav class="sidebar__nav sidebar__nav--secondary" aria-label="Recursos">
         <span class="sidebar__nav-label">Seu espaço</span>
         <a class="nav-item <?= in_array($page, ['preferencias', 'privacidade', 'seguranca'], true) ? 'active' : '' ?>" href="?page=preferencias" title="Preferências" aria-label="Preferências">

@@ -90,6 +90,7 @@ class AuthController extends Controller
             ]);
         }
 
+        abort_if($user->suspended_at !== null, 403, 'Esta conta está suspensa.');
         return DB::transaction(function () use ($user): array {
             $prefs = DB::table('preferencias_usuarios')->where('user_id', $user->id)->first();
             if ($prefs->alertas_acesso ?? false) {
@@ -109,6 +110,7 @@ class AuthController extends Controller
         if (!$user || !Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages(['email' => ['Credenciais inválidas.']]);
         }
+        abort_if($user->suspended_at !== null, 403, 'Esta conta está suspensa.');
         abort_unless(
             $user->isAdmin() || $user->role === User::ROLE_MODERATOR || $user->isVerifiedInstitutional(),
             403,

@@ -86,10 +86,27 @@ class IntellectaStateController extends Controller
                 'id' => (string) $p->id, 'name' => $p->name, 'username' => $p->username,
             ])->all();
 
-        $posts = DB::table('publicacoes as p')->join('usuarios as u', 'u.id', '=', 'p.user_id')
+        $paging=$request->validate(['cursor'=>'nullable|string|max:500','topic'=>'nullable|string|max:100','post'=>'nullable|integer|min:1','feed_only'=>'nullable|boolean','no_feed'=>'nullable|boolean']);
+        $cursor=null;
+        if (!empty($paging['cursor'])) {
+            $cursor=json_decode(base64_decode($paging['cursor'],true)?:'',true);
+            abort_unless(is_array($cursor) && isset($cursor['date'],$cursor['id']) && is_string($cursor['date']) && preg_match('/^\d{4}-\d{2}-\d{2} /',$cursor['date']) && is_numeric($cursor['id']),422,'Página inválida.');
+        }
+        $query = DB::table('publicacoes as p')->join('usuarios as u', 'u.id', '=', 'p.user_id')
             ->join('disciplinas as d', 'd.id', '=', 'p.subject_id')->where(fn ($q) => $q->where('p.status', 'aprovado')->orWhere('p.user_id', $uid))
-            ->whereIn('p.user_id', $visibleIds)->orderByDesc('p.created_at')->orderByDesc('p.id')->limit(50)
+            ->whereIn('p.user_id', $visibleIds);
+        $paged=$request->input('view','home')==='home';
+        if($paged) $query->whereNotIn('p.id',$account['muted']);
+        if(!empty($paging['topic'])) $query->where('d.name',$paging['topic']);
+        if(!empty($paging['post'])) $query->where('p.id',$paging['post']);
+        if($cursor) $query->where(fn($q)=>$q->where('p.created_at','<',$cursor['date'])->orWhere(fn($q)=>$q->where('p.created_at',$cursor['date'])->where('p.id','<',(int)$cursor['id'])));
+        if(!empty($paging['no_feed'])) $query->whereRaw('1=0');
+        $posts=$query->orderByDesc('p.created_at')->orderByDesc('p.id')->limit($paged?13:50)
             ->get(['p.*', 'u.name as author_name', 'u.username as author_username', 'd.name as topic']);
+        $hasMore=$paged && $posts->count()>12;
+        if($hasMore) $posts=$posts->take(12);
+        $last=$posts->last();
+        $feedPage=['more'=>$hasMore,'cursor'=>$hasMore?base64_encode(json_encode(['date'=>$last->created_at,'id'=>$last->id])):null];
         $postIds = $posts->pluck('id')->all();
         $likes = DB::table('curtidas')->whereIn('post_id', $postIds)->get()->groupBy('post_id');
         $comments = DB::table('comentarios as c')->join('usuarios as u', 'u.id', '=', 'c.user_id')
@@ -140,6 +157,8 @@ class IntellectaStateController extends Controller
             ];
         })->all();
 
+        if(!empty($paging['feed_only'])) return compact('feed','feedPage');
+
         $messages = DB::table('mensagens as m')->join('conversas as c', 'c.id', '=', 'm.conversa_id')
             ->where(fn ($q) => $q->where('c.usuario_1_id', $uid)->orWhere('c.usuario_2_id', $uid))
             ->whereNotIn('c.usuario_1_id', $hidden)->whereNotIn('c.usuario_2_id', $hidden)
@@ -153,8 +172,13 @@ class IntellectaStateController extends Controller
                 'text' => $m->tipo === 'publicacao'
                     ? ($m->publicacao_removida ? 'Publicação removida' : 'Publicação compartilhada') . ($m->conteudo ? "\n" . $m->conteudo : '')
                     : $m->conteudo,
-                'time' => $this->time($m->created_at),
+                'time' => $this->time($m->created_at), 'read' => $m->lida_em !== null,
             ])->all();
+        $unread = DB::table('mensagens as m')->join('conversas as c','c.id','=','m.conversa_id')
+            ->where(fn($q)=>$q->where('c.usuario_1_id',$uid)->orWhere('c.usuario_2_id',$uid))
+            ->where('m.remetente_id','!=',$uid)->whereNotIn('m.remetente_id',$hidden)->whereNull('m.lida_em')
+            ->whereNotExists(fn($q)=>$q->selectRaw('1')->from('mensagens_ocultadas as h')->whereColumn('h.mensagem_id','m.id')->where('h.user_id',$uid))
+            ->selectRaw('m.remetente_id, count(*) as total')->groupBy('m.remetente_id')->pluck('total','remetente_id')->all();
         $labels = ['curtida' => 'curtiu sua publicação', 'comentario' => 'comentou na sua publicação', 'mensagem' => 'enviou uma mensagem', 'mencao' => 'mencionou você em uma publicação', 'republicacao' => 'republicou sua publicação', 'seguidor' => 'começou a seguir você', 'publicacao' => 'publicou uma ideia', 'acesso' => 'Novo acesso à conta'];
         $notifications = DB::table('notificacoes as n')->leftJoin('usuarios as u', 'u.id', '=', 'n.autor_id')
             ->where('n.user_id', $uid)->where(fn ($q) => $q->whereNull('n.autor_id')->orWhereNotIn('n.autor_id', $hidden))
@@ -166,6 +190,6 @@ class IntellectaStateController extends Controller
                 'url' => $n->url && str_starts_with($n->url, '?page=') ? $n->url : '?page=notifications',
             ])->all();
         $subjects = DB::table('disciplinas')->orderBy('name')->get(['id', 'name'])->all();
-        return compact('account', 'people', 'followers', 'feed', 'messages', 'notifications', 'subjects');
+        return compact('account', 'people', 'followers', 'feed', 'messages', 'notifications', 'subjects', 'feedPage', 'unread');
     }
 }

@@ -3,6 +3,10 @@ $ErrorActionPreference='Stop'
 Set-Location -LiteralPath $PSScriptRoot
 function NativeCheck($message){if($LASTEXITCODE -ne 0){throw $message}}
 try {
+    # Pastas vazias podem ser omitidas ao compactar ou extrair o projeto.
+    foreach ($relative in @('api/bootstrap/cache','api/storage/framework/cache/data','api/storage/framework/sessions','api/storage/framework/views','api/storage/logs','frontend/storage/sessions-api')) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $PSScriptRoot $relative) | Out-Null
+    }
     $php=Join-Path $PSScriptRoot 'runtime\php\php.exe'
     $ini=Join-Path $PSScriptRoot 'runtime\php\php.ini'
     $ext='extension_dir='+(Join-Path $PSScriptRoot 'runtime\php\ext')
@@ -56,6 +60,8 @@ try {
     try {
         & $php -c $ini -d $ext artisan config:clear
         NativeCheck 'Falha ao preparar a configuracao local.'
+        & $php -c $ini -d $ext artisan migrate --force
+        NativeCheck 'Falha ao atualizar a estrutura do banco.'
         & $php -c $ini -d $ext artisan route:clear
         NativeCheck 'Falha ao preparar as rotas.'
         & $php -c $ini -d $ext (Join-Path $PSScriptRoot 'VALIDAR.php')

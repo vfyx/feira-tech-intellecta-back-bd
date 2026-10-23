@@ -90,7 +90,7 @@ function backend_state(): ?array
 {
     if (empty($_SESSION['api_token'])) return null;
     try {
-        return api_call('GET', '/intellecta/state');
+        return api_call('GET', '/intellecta/state?' . http_build_query(['view'=>$_GET['page']??'home','topic'=>$_GET['topic']??null,'post'=>$_GET['post']??null]));
     } catch (DomainException $exception) {
         if ($exception->getCode() === 401) return null;
         throw $exception;
@@ -129,7 +129,15 @@ function api_action(string $action, array $input): array
         return ['redirect' => '?page=home'];
     }
     if ($action === 'state') {
-        return backend_state() ?? fail('Entre na sua conta para continuar.', 401);
+        return api_call('GET', '/intellecta/state?' . http_build_query(array_intersect_key($input,array_flip(['cursor','topic','post','view','feed_only','no_feed']))));
+    }
+    if ($action === 'live-ticket') return api_call('POST', '/live/ticket');
+    if ($action === 'chat-read') return api_call('POST', '/live/read', $input);
+    if ($action === 'moderation-list') return api_call('GET', '/moderation?' . http_build_query(['type'=>$input['type']??'post','status'=>$input['status']??null,'page'=>$input['page']??1]));
+    if ($action === 'moderation-update') {
+        $type=$input['type']??''; $id=(int)($input['id']??0);
+        if(!in_array($type,['post','perfil'],true)||$id<1) fail('Denúncia inválida.');
+        return api_call('PATCH','/moderation/'.$type.'/'.$id,$input);
     }
     if ($action === 'logout') {
         if (!empty($_SESSION['api_token'])) {
@@ -154,6 +162,14 @@ function api_action(string $action, array $input): array
         $id = (int) ($input['id'] ?? 0);
         if ($id < 1) fail('Reclamação inválida.');
         return api_call('PATCH', '/teacher-complaints/' . $id, ['reply' => $input['reply'] ?? '']);
+    }
+    if ($action === 'admin-list' || $action === 'admin-save') {
+        $kind = $input['kind'] ?? '';
+        if (!in_array($kind, ['users','posts','subjects'], true)) fail('Recurso inválido.', 422);
+        if ($action === 'admin-list') return api_call('GET', '/admin/'.$kind.'?'.http_build_query(['q'=>$input['q'] ?? '', 'page'=>$input['page'] ?? 1]));
+        $id = (int) ($input['id'] ?? 0);
+        if ($id < 1 && $kind !== 'subjects') fail('Registro inválido.', 422);
+        return api_call($id > 0 ? 'PATCH' : 'POST', '/admin/'.$kind.($id > 0 ? '/'.$id : ''), $input);
     }
     if ($action === 'institutional-users') return api_call('GET', '/institutional/users');
     if ($action === 'institutional-user-update') {
