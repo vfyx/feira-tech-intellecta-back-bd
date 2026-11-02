@@ -3,85 +3,74 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ChatRequest;
-use App\Models\Post;
-use App\Models\PostEmbedding;
 use App\Services\AIService;
+use App\Services\KnowledgeBase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
-    public function __invoke(ChatRequest $request, AIService $ai)
+    private function normalize(string $text): string
     {
+        $text = Str::lower(Str::ascii($text));
+        return trim(preg_replace('/[^a-z0-9]+/', ' ', $text));
+    }
+
+    private function basicReply(string $question): ?string
+    {
+        $normalized = $this->normalize($question);
+        if ($normalized === '') return null;
+        foreach (DB::table('respostas_conversa')->where('ativo', true)->orderBy('id')->get(['pergunta', 'resposta']) as $reply) {
+            if ($this->normalize($reply->pergunta) === $normalized && trim($reply->resposta) !== '') {
+                return $reply->resposta;
+            }
+        }
+        return null;
+    }
+
+    public function __invoke(ChatRequest $request, AIService $ai, KnowledgeBase $knowledge)
+    {
+        set_time_limit(65);
         try {
             $question = $request->string('message')->toString();
-            $vector = $ai->embedding($question);
-
-            if ($vector === []) {
-                throw new \RuntimeException('Embedding da pergunta vazio.');
+            if (($reply = $this->basicReply($question)) !== null) {
+                return [
+                    'answer' => $reply,
+                    'rag' => ['used' => false, 'sources' => []],
+                ];
             }
-
-            // O pgvector ordena pelo menor valor de distância de cosseno.
-            // Somente posts aprovados podem fornecer contexto ao modelo.
-            $vectorLiteral = '[' . implode(',', array_map(
-                static fn ($value): string => (string) $value,
-                $vector
-            )) . ']';
-
-            $matches = PostEmbedding::query()
-                ->with(['post.user:id,name', 'post.subject:id,name'])
-                ->whereHas('post', function ($query) use ($request): void {
-                    $query
-                        ->where('status', Post::STATUS_APPROVED)
-                        ->when(
-                            $request->subject_id,
-                            fn ($query, $subjectId) => $query->where('subject_id', $subjectId)
-                        );
-                })
-                ->select(['vetores_publicacoes.*'])
-                ->selectRaw(
-                    'vetores_publicacoes.embedding <=> ?::vector AS distance',
-                    [$vectorLiteral]
-                )
-                ->orderBy('distance')
-                ->limit(5)
-                ->get();
-
-            $context = $matches
-                ->map(function (PostEmbedding $embedding): string {
-                    $post = $embedding->post;
-                    $author = $post->user?->name ?? 'Autor não identificado';
-                    $subject = $post->subject?->name
-                        ? " ({$post->subject->name})"
-                        : '';
-
-                    return "[Autor: {$author}; título: {$post->title}{$subject}]\n"
-                        . $post->content;
-                })
-                ->values()
-                ->all();
-
-            return [
-                'answer' => $ai->answer($question, $context),
-                'rag' => [
-                    'used' => $context !== [],
-                    'sources' => $matches
-                        ->map(fn (PostEmbedding $embedding): array => [
-                            'post_id' => $embedding->post->id,
-                            'title' => $embedding->post->title,
-                            'author' => $embedding->post->user?->name,
-                            'subject' => $embedding->post->subject?->name,
-                            'distance' => (float) $embedding->distance,
-                        ])
-                        ->values(),
-                ],
-            ];
+            $matches = $knowledge->search($question, (int) $request->user()->id, $request->integer('subject_id') ?: null);
+            $context = [];
+            $sources = [];
+            foreach ($matches as $index => $match) {
+                $number = $index + 1;
+                $label = $match['title'];
+                if ($match['author']) $label .= ' — '.$match['author'];
+                if ($match['page']) $label .= ', página '.$match['page'];
+                $context[] = '[Fonte '.$number.': '.$label."]\n".$match['content'];
+                $sources[] = [
+                    'number' => $number, 'type' => $match['source_type'], 'title' => $match['title'],
+                    'post_id' => $match['post_id'], 'filename' => $match['filename'], 'page' => $match['page'],
+                    'author' => $match['author'], 'subject' => $match['subject'], 'distance' => (float) $match['distance'],
+                    'url' => $match['post_id'] ? '?page=home&post='.$match['post_id'] : null,
+                ];
+            }
+            return ['answer' => $ai->answer($question, $context), 'rag' => ['used' => $context !== [], 'sources' => $sources]];
         } catch (\RuntimeException $exception) {
-            return response()->json(['message' => $exception->getMessage()], 503);
+            $previous = $exception->getPrevious();
+            preg_match('/cURL error (\d+)/', $previous?->getMessage() ?? '', $curlError);
+            logger()->warning('Intellia: falha ao consultar o provedor.', [
+                'exception_class' => get_class($previous ?? $exception),
+                'http_status' => $previous instanceof \Illuminate\Http\Client\RequestException ? $previous->response->status() : null,
+                'curl_error' => isset($curlError[1]) ? (int) $curlError[1] : null,
+            ]);
+            return response()->json([
+                'code' => 'ai_unavailable',
+                'message' => 'O serviço de IA está indisponível no momento. Tente novamente em instantes.',
+            ], 503);
         } catch (\Throwable $exception) {
             report($exception);
-
-            return response()->json([
-                'message' => 'Não foi possível consultar a base de conhecimento.',
-            ], 503);
+            return response()->json(['message' => 'Não foi possível consultar a base de conhecimento.'], 503);
         }
     }
 }

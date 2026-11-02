@@ -39,7 +39,7 @@ class TeacherComplaintController extends Controller
 
     public function store(Request $request): array
     {
-        abort_unless($request->user()->role==='aluno',403,'Somente alunos podem enviar reclamações por este formulário.');
+        abort_unless(in_array($request->user()->role, ['aluno', 'moderador'], true),403,'Somente alunos e moderadores podem enviar reclamações por este formulário.');
         foreach (['rm','course','class','subject','description','request'] as $field) {
             if (is_string($request->input($field))) $request->merge([$field=>trim($request->input($field))]);
         }

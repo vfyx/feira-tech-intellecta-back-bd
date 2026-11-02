@@ -13,7 +13,7 @@
   function notify(text) { const t = $('#toast'); t.textContent = text; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4500); }
   function animate(el) { if (el && state?.account.settings.motion !== false && !matchMedia('(prefers-reduced-motion: reduce)').matches) el.animate([{opacity:.4,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:180,easing:'ease-out'}); }
   async function api(action, values = {}) {
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), action === 'assistant' ? 75000 : 20000);
     try {
       const response = await fetch('?api=1', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':boot.csrf},body:JSON.stringify({action,...values}),signal:controller.signal});
       const result = await response.json();
@@ -699,7 +699,23 @@
         const input=$('textarea',form),question=input.value.trim();if(!question)return;
         const messages=$('[data-ai-messages]');const add=(text,type)=>{const el=document.createElement('div');el.className=`ai-message ai-message--${type}`;const p=document.createElement('p');p.textContent=text;el.append(p);messages.append(el);messages.scrollTop=messages.scrollHeight;animate(el);};
         add(question,'user');input.disabled=true;$('.ai-card').classList.add('ai-card--thinking');
-        try{const answer=await api('assistant',{question});add(answer.answer,'bot');input.value='';}finally{input.disabled=false;$('.ai-card').classList.remove('ai-card--thinking');input.focus();}
+        try{
+          const answer=await api('assistant',{question});add(answer.answer,'bot');
+          const sources=answer.rag?.sources||[];
+          if(sources.length){
+            const list=document.createElement('ul');list.className='ai-sources';
+            sources.forEach(source=>{
+              const item=document.createElement('li'),label=`[Fonte ${source.number}] ${source.title}${source.page?' · p. '+source.page:''}`;
+              if(source.type==='post'&&/^\?page=home&post=\d+$/.test(source.url||'')){
+                const link=document.createElement('a');link.href=source.url;link.textContent=label;item.append(link);
+              }else item.textContent=label;
+              list.append(item);
+            });
+            messages.lastElementChild.append(list);
+          }
+          input.value='';
+        }catch(error){add(error.message,'bot');}
+        finally{input.disabled=false;$('.ai-card').classList.remove('ai-card--thinking');input.focus();}
       }
     }catch(error){notify(error.message);}
     finally{delete form.dataset.busy;if(submit){submit.disabled=false;submit.classList.remove('is-submitting');}}
@@ -711,7 +727,7 @@
   if(state){
     render();if($('#gender'))$('#gender').value=state.account.gender;
     if(boot.page==='privacidade'&&state.account.blocked.length){const section=document.createElement('section');section.className='settings-group card';section.innerHTML='<h2>Perfis bloqueados</h2>'+state.account.blocked.map(id=>`<p>Perfil bloqueado <button class="btn btn-secondary" data-unblock="${esc(id)}">Desbloquear</button></p>`).join('');$('.page-content').append(section);}
-    if($('[data-ai-messages]'))$('[data-ai-messages]').innerHTML='<div class="ai-message ai-message--bot"><p>A assistente ainda não está disponível nesta etapa.</p></div>';
+    if($('[data-ai-messages]'))$('[data-ai-messages]').innerHTML='<div class="ai-message ai-message--bot"><p>Sou a Intellia. Pergunte sobre as publicações e os materiais de estudo da escola. Quando encontrar conteúdo, mostro as fontes.</p></div>';
     if(boot.page==='chat' && target() && (state.account.closedDirect||[]).includes(target().id)) {
       const requested=target().id;api('open-direct',{target:requested}).then(()=>{activeChat=requested;return refresh();}).catch(error=>notify(error.message));
     }

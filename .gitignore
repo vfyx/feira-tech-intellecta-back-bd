@@ -1,4 +1,6 @@
 banco/postgres-pgvector-pg16.tar
+/logs/
+/backups/
 
 # Arquivos locais gerados em execução
 /frontend/storage/sessions*/

@@ -12,7 +12,7 @@ return new class extends Migration
         }
         DB::unprepared(<<<'SQL'
 ALTER TABLE usuarios ALTER COLUMN avatar_url TYPE text;
-ALTER TABLE usuarios ADD COLUMN banner_url text;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS banner_url text;
 COMMENT ON COLUMN usuarios.avatar_url IS 'URL/caminho ou data URI, conforme armazenamento utilizado pela API.';
 COMMENT ON COLUMN usuarios.banner_url IS 'Banner opcional do perfil; upload e validação são responsabilidade da API.';
 SQL);

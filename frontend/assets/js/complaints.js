@@ -6,6 +6,19 @@
   const find = (s, parent = root) => parent.querySelector(s);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const form = find('[data-complaint-form]'), status = find('[data-complaint-load-status]');
+  const newButton = find('[data-complaint-new]'), composer = find('#new-complaint'), cancelButton = find('[data-complaint-cancel]');
+  function showComposer(open) {
+    if (!composer) return;
+    composer.hidden = !open;
+    newButton.setAttribute('aria-expanded', String(open));
+    if (open) {
+      composer.scrollIntoView({block:'start', behavior:'instant'});
+      const first = [...form.querySelectorAll('input,select,textarea')].find(input => !input.readOnly && !input.disabled);
+      first?.focus({preventScroll:true});
+    } else newButton.focus();
+  }
+  if (newButton) newButton.onclick = () => showComposer(composer.hidden);
+  if (cancelButton) cancelButton.onclick = () => showComposer(false);
   let requestKey = crypto.randomUUID(), loading = false;
   async function api(action, data = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
@@ -50,6 +63,7 @@
     }
     const button = find('[type="submit"]', target), feedback = find('.complaint-feedback', target), values = Object.fromEntries(new FormData(target));
     target.dataset.sending = '1'; button.disabled = true; const label = button.textContent; button.textContent = 'Enviando…'; feedback.textContent = ''; feedback.dataset.error = 'false';
+    if (target === form) { newButton.disabled = true; cancelButton.disabled = true; }
     try {
       const isReply = target.hasAttribute('data-complaint-reply');
       const result = await api(isReply ? 'complaint-reply' : 'complaint-create', isReply ? {id:target.dataset.complaintReply,reply:values.reply} : {...values,request_key:requestKey});
@@ -58,10 +72,11 @@
       } else {
         requestKey = crypto.randomUUID();
         ['subject','description','request'].forEach(name => find(`[name="${name}"]`, target).value = '');
-        feedback.textContent = `${result.message} Protocolo: ${result.protocol}.`; feedback.focus(); await load();
+        feedback.textContent = ''; await load(); showComposer(false);
+        status.textContent = `${result.message} Protocolo: ${result.protocol}.`; status.focus();
       }
     } catch (error) { feedback.dataset.error = 'true'; feedback.textContent = error.message; }
-    finally { delete target.dataset.sending; button.disabled = false; button.textContent = label; }
+    finally { delete target.dataset.sending; button.disabled = false; button.textContent = label; if (target === form) { newButton.disabled = false; cancelButton.disabled = false; } }
   });
   root.addEventListener('input', event => { if (event.target.setCustomValidity) event.target.setCustomValidity(''); });
   load();

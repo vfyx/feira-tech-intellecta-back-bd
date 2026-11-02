@@ -22,11 +22,13 @@ function callApi(string $method,string $url,array $data=[],?string $token=null):
 DB::beginTransaction();
 try {
     $suffix=bin2hex(random_bytes(5)); $tokens=[]; $users=[];
-    foreach (['a','b','c','d'] as $letter) {
+    foreach (['a','b','c','d','m','admin'] as $letter) {
         [$s,$data]=callApi('POST','auth/register',['name'=>'Teste requerimento '.$letter,'username'=>'qa_'.$suffix.$letter,'email'=>'qa_'.$suffix.$letter.'@example.test','password'=>'Teste!123456','password_confirmation'=>'Teste!123456']);
         check($s===201,'Cadastro isolado'); $tokens[$letter]=$data['token']; $users[$letter]=(int)$data['user']['id'];
     }
     DB::table('usuarios')->whereIn('id',[$users['b'],$users['d']])->update(['role'=>'professor']);
+    DB::table('usuarios')->where('id',$users['m'])->update(['role'=>'moderador']);
+    DB::table('usuarios')->where('id',$users['admin'])->update(['role'=>'admin']);
     $call=function($method,$path,$data,$token,$expected=200) {
         [$s,$result]=callApi($method,$path,$data,$token);
         check($s===$expected,'HTTP esperado '.$expected.', recebido '.$s); return $result;
@@ -52,5 +54,18 @@ try {
     $call('PATCH','teacher-complaints/'.$id,['reply'=>'   '],$tokens['b'],422);
     $call('PATCH','teacher-complaints/'.$id,['reply'=>'Vamos revisar a atividade juntos.'],$tokens['b']);
     $mine=$call('GET','teacher-complaints',[],$tokens['a']); check($mine['entries'][0]['reply']==='Vamos revisar a atividade juntos.','Aluno recebe resposta');
+    $moderatorInput=array_replace($input,['request_key'=>(string)Illuminate\Support\Str::uuid(),'subject'=>'Requerimento do moderador']);
+    $moderatorCreated=$call('POST','teacher-complaints',$moderatorInput,$tokens['m']);
+    $moderatorAgain=$call('POST','teacher-complaints',$moderatorInput,$tokens['m']);
+    check($moderatorCreated['protocol']===$moderatorAgain['protocol'],'Envio do moderador idempotente');
+    $moderatorMine=$call('GET','teacher-complaints',[],$tokens['m']);
+    check(count($moderatorMine['entries'])===1 && $moderatorMine['entries'][0]['studentId']===(string)$users['m'],'Moderador vê seu requerimento');
+    $moderatorId=$moderatorMine['entries'][0]['id'];
+    check(!in_array($id,array_column($moderatorMine['entries'],'id'),true),'Moderador não vê requerimento de outro aluno');
+    $call('PATCH','teacher-complaints/'.$id,['reply'=>'Resposta indevida'],$tokens['m'],403);
+    $call('PATCH','teacher-complaints/'.$moderatorId,['reply'=>'Orientação ao moderador.'],$tokens['b']);
+    $moderatorMine=$call('GET','teacher-complaints',[],$tokens['m']);
+    check($moderatorMine['entries'][0]['reply']==='Orientação ao moderador.','Moderador recebe resposta do destinatário');
+    $call('POST','teacher-complaints',array_replace($input,['request_key'=>(string)Illuminate\Support\Str::uuid()]),$tokens['admin'],403);
     echo "PASS: $checks verificações de envio, validação, idempotência, privacidade e resposta; dados revertidos.\n";
 } finally { DB::rollBack(); }

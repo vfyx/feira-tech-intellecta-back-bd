@@ -148,7 +148,9 @@ button { cursor: pointer; }
 .ai-message p { margin: 0; line-height: 1.45; }
 .ai-message small { display: block; margin-top: .3rem; color: var(--quiet); font-family: "JetBrains Mono", monospace; font-size: .5rem; }
 .ai-message--user { align-self: flex-end; display: block; padding: .55rem .65rem; border: 1px solid var(--line); border-radius: 12px 12px 3px 12px; color: var(--text); background: var(--surface-soft); }
-.ai-message--bot { align-self: flex-start; }
+.ai-message--bot { align-self: flex-start; flex-direction: column; }
+.ai-sources { margin: .4rem 0 0; padding-left: 1.1rem; font-size: .7rem; overflow-wrap: anywhere; }
+.ai-sources a { color: var(--primary); text-decoration: underline; }
 .ai-message--bot > div { padding: .55rem .65rem; border: 1px solid var(--line); border-radius: 3px 12px 12px 12px; background: rgba(41, 45, 36, .58); }
 .ai-message__avatar { display: grid; place-items: center; flex: 0 0 auto; width: 1.55rem; height: 1.55rem; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--primary); background: rgba(205, 212, 126, .1); }
 .ai-message__avatar .icon { width: .75rem; height: .75rem; }

@@ -58,7 +58,7 @@ function render_page_head(string $title): void
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
-      <?php if ($title === 'reclamacoes'): ?><script src="<?= e($assetPath) ?>/js/complaints.js?v=20261021" defer></script><?php endif; ?>
+      <?php if ($title === 'reclamacoes'): ?><script src="<?= e($assetPath) ?>/js/complaints.js?v=<?= filemtime(__DIR__ . '/../../../assets/js/complaints.js') ?>" defer></script><?php endif; ?>
       <?php if ($title === 'admin-institucional'): ?><script src="<?= e($assetPath) ?>/js/admin.js?v=20261023" defer></script><link rel="stylesheet" href="<?= e($assetPath) ?>/css/admin.css?v=20261023"><?php endif; ?>
       <?php if ($title === 'moderacao'): ?><script src="<?= e($assetPath) ?>/js/moderation.js?v=20261022" defer></script><?php endif; ?>
       <link rel="stylesheet" href="<?= e($assetPath) ?>/css/styles.css?v=<?= filemtime(__DIR__ . '/../../../assets/css/styles.css') ?>">
@@ -186,18 +186,17 @@ function render_rightbar(): void
         <div class="ai-card__head">
           <div class="ai-brand">
             <span class="ai-brand__mark">I</span>
-            <div><strong id="ai-title">INTELLIA</strong><small>assistente local</small></div>
+            <div><strong id="ai-title">INTELLIA</strong><small>assistente de estudos</small></div>
           </div>
-          <div class="ai-card__controls"><span class="ai-status">em preparação</span><button class="ai-logo-close" type="button" data-ai-toggle aria-label="Fechar Intellia"><img src="<?= e(intellecta_asset('images/intellecta_icon_branco_vetor.svg')) ?>" alt="" aria-hidden="true"></button></div>
+          <div class="ai-card__controls"><span class="ai-status">base da escola</span><button class="ai-logo-close" type="button" data-ai-toggle aria-label="Fechar Intellia"><img src="<?= e(intellecta_asset('images/intellecta_icon_branco_vetor.svg')) ?>" alt="" aria-hidden="true"></button></div>
         </div>
         <div class="ai-orbit ai-orbit--one"></div><div class="ai-orbit ai-orbit--two"></div><div class="ai-orbit ai-orbit--three"></div>
         <div class="ai-intro">
           <span class="ai-intro__spark"><?= icon('spark') ?></span>
-          <div><strong>Como posso ajudar?</strong><p>Organize uma ideia, estude melhor ou destrave seu próximo passo.</p></div>
+          <div><strong>O que vamos estudar?</strong><p>Consulte publicações e materiais de estudo com indicação das fontes.</p></div>
         </div>
         <div class="ai-messages" data-ai-messages aria-live="polite">
-          <div class="ai-message ai-message--user"><p>Como posso melhorar meus estudos?</p><small>agora</small></div>
-          <div class="ai-message ai-message--bot"><span class="ai-message__avatar"><?= icon('spark') ?></span><div><p>A assistente ainda não está disponível nesta etapa.</p><small>INTELLIA · agora</small></div></div>
+          <div class="ai-message ai-message--bot"><p>Pergunte sobre os conteúdos da escola. Vou buscar trechos relacionados e mostrar as fontes encontradas.</p></div>
         </div>
         <div class="ai-suggestions" aria-label="Sugestões rápidas">
           <button type="button" data-ai-prompt="Monte um plano de estudos">Plano de estudos</button>
@@ -206,7 +205,7 @@ function render_rightbar(): void
         </div>
         <form class="ai-form" data-ai-form>
           <label class="sr-only" for="ai-question">Pergunte à Intellecta IA</label>
-          <textarea class="input" id="ai-question" rows="1" placeholder="Pergunte qualquer coisa..." required></textarea>
+          <textarea class="input" id="ai-question" rows="1" placeholder="Qual assunto você quer entender?" maxlength="10000" required></textarea>
           <button class="ai-send" type="submit" aria-label="Enviar pergunta"><?= icon('send') ?></button>
         </form>
       </section>

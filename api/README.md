@@ -15,7 +15,7 @@ php artisan serve
 ```
 
 Defina `GEMINI_API_KEY` e mantenha `AI_PROVIDER=gemini` para moderação,
-embeddings, tutor e filtro da ouvidoria. A API usa `gemini-2.5-flash` para
+embeddings, tutor e filtro da ouvidoria. A API usa `gemini-3.6-flash` para
 texto e `gemini-embedding-001` com vetores de 1536 dimensões. `OMBUDSMAN_FILTER_URL` é opcional; quando definido, a API envia
 `{content}` via HTTP e persiste a classificação retornada. Falhas de provedores
 retornam HTTP 503 de forma explícita.
@@ -35,11 +35,13 @@ registro e rejeição de credenciais inválidas. O admin seed inicial é
 
 ## RAG do tutor
 
-`POST /api/chat` gera um embedding da pergunta e consulta os embeddings de
-posts aprovados usando a distância de cosseno do pgvector (`<=>`). Até cinco
-posts são carregados com autor e disciplina; o contexto enviado ao modelo
-contém citações no formato `[Autor: título]`, e a resposta também retorna
-`rag.used` e `rag.sources`. Se nenhum post relevante estiver indexado, a API
-não inventa contexto: retorna uma orientação pedagógica neutra com três links
-de busca do YouTube. Falhas no embedding, no banco ou no provedor de IA
-retornam HTTP 503.
+`POST /api/chat` consulta `trechos_conhecimento`, que combina publicações e
+materiais PDF/TXT/Markdown. A busca usa distância de cosseno (`<=>`), filtra
+modelo/provedor e recupera até cinco trechos dentro de `RAG_MAX_DISTANCE`.
+A resposta retorna `rag.used`, `rag.sources` e citações `[Fonte 1]` etc.
+O frontend encaminha a ação `assistant` para esse endpoint autenticado.
+
+Veja [BANCO-VETORIAL.md](../BANCO-VETORIAL.md) para configurar, importar,
+atualizar e remover materiais. A tabela antiga `vetores_publicacoes` foi
+preservada, mas não é usada pela nova consulta: seus vetores não têm informação
+confiável sobre modelo/provedor. Publicações devem ser reindexadas pelo comando.

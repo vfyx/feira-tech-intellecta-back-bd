@@ -15,7 +15,7 @@ function field(array $input, string $key, int $max = 500): string
     return $value;
 }
 
-function api_call(string $method, string $route, ?array $body = null, bool $authenticated = true): array
+function api_call(string $method, string $route, ?array $body = null, bool $authenticated = true, int $timeout = 12): array
 {
     $base = rtrim(getenv('INTELLECTA_API_URL') ?: 'http://127.0.0.1:8000/api', '/');
     $headers = ['Accept: application/json'];
@@ -33,7 +33,7 @@ function api_call(string $method, string $route, ?array $body = null, bool $auth
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT => 12,
+            CURLOPT_TIMEOUT => $timeout,
             CURLOPT_FOLLOWLOCATION => false,
         ]);
         if ($encoded !== null) curl_setopt($curl, CURLOPT_POSTFIELDS, $encoded);
@@ -47,7 +47,7 @@ function api_call(string $method, string $route, ?array $body = null, bool $auth
             'method' => $method,
             'header' => implode("\r\n", $headers),
             'content' => $encoded ?? '',
-            'timeout' => 12,
+            'timeout' => $timeout,
             'ignore_errors' => true,
             'follow_location' => 0,
         ]]);
@@ -72,6 +72,9 @@ function api_call(string $method, string $route, ?array $body = null, bool $auth
         }
         if ($status >= 500 || $status === 0) {
             error_log('Intellecta: falha HTTP ' . $status . ' na rota ' . $route);
+            if ($route === '/chat' && ($result['code'] ?? '') === 'ai_unavailable') {
+                fail('O serviço de IA está indisponível no momento. Tente novamente em instantes.', 503);
+            }
             fail('Não foi possível concluir no servidor. Tente novamente.', 503);
         }
         $message = 'Não foi possível concluir.';
@@ -99,6 +102,10 @@ function backend_state(): ?array
 
 function api_action(string $action, array $input): array
 {
+    if ($action === 'assistant') {
+        set_time_limit(75);
+        return api_call('POST', '/chat', ['message' => field($input, 'question', 10000)], true, 70);
+    }
     if ($action === 'login' || $action === 'register' || $action === 'institutional-login') {
         $body = [
             'email' => field($input, 'email', 255),
