@@ -436,7 +436,8 @@
     $$('[data-unread-count]').forEach(el=>{el.textContent=unread;el.hidden=!unread;});
     if(!$('.notification-list'))return;
     $('.notification-summary strong').textContent=unread?'Você tem novidades.':'Você está em dia.';
-    $('.notification-summary div > span').textContent=`${unread} notificação(ões) não lida(s).`;
+    $('.notification-summary div > span').textContent=unread===0?'Nenhuma notificação nova.':unread===1?'1 notificação não lida.':`${unread} notificações não lidas.`;
+    if(!state.notifications.length){$('.notification-list').innerHTML='<p class="muted notification-empty">Nada por aqui ainda. Curtidas, comentários, menções e novos seguidores aparecem aqui.</p>';return;}
     $('.notification-list').innerHTML=state.notifications.map(n=>`<a class="person notification-item" href="${esc(n.url)}" data-filter-item><div class="avatar">${esc(n.actor[0])}</div><div class="person__copy"><strong>${esc(n.actor)}</strong><span>${esc(n.type)}</span><span>${esc(n.time)}</span></div>${!n.read?'<span class="notification-dot" aria-label="Não lida"></span>':''}</a>`).join('')||empty('Nenhuma notificação por enquanto.');
   }
   function renderChat() {
@@ -636,7 +637,19 @@
     if(button.matches('[data-clear-chat]')){await api('clear-chat',{target:activeChat});button.closest('dialog').close();await refresh();return;}
     if(button.matches('[data-logout]')){if(confirm('Sair da conta?'))location.assign((await api('logout')).redirect);return;}
     if(button.matches('[data-delete-account]')){if(!confirm('Excluir sua conta, publicações e mensagens? Esta ação não pode ser desfeita.'))return;const password=state.account.demo?'':prompt('Confirme sua senha para excluir a conta:');if(password===null)return;location.assign((await api('delete-account',{current_password:password})).redirect);return;}
-    if(button.matches('[data-ai-prompt]')){$('#ai-question').value=button.dataset.aiPrompt;$('[data-ai-form]').requestSubmit();return;}
+    if(button.matches('[data-ai-reset]')){
+      if($('.ai-card')?.classList.contains('ai-card--thinking'))return;
+      button.disabled=true;
+      try{
+        await api('assistant-reset');
+        const messages=$('[data-ai-messages]');
+        if(messages){messages.innerHTML='<div class="ai-message ai-message--bot"><p>Nova conversa iniciada! Pode me perguntar qualquer coisa.</p></div>';animate(messages.firstElementChild);}
+        const q=$('#ai-question');if(q){q.value='';q.focus();}
+      }catch(error){notify(error.message);}
+      finally{button.disabled=false;}
+      return;
+    }
+    if(button.matches('[data-ai-prompt]')){const q=$('#ai-question');q.value=button.dataset.aiPrompt;if(button.hasAttribute('data-ai-fill')){q.focus();q.setSelectionRange(q.value.length,q.value.length);}else $('[data-ai-form]').requestSubmit();return;}
   }
   function attachments() {
     const box=$('[data-attachments]');if(!box)return;
@@ -697,10 +710,26 @@
       else if(form.matches('[data-institutional-user]')){await api('institutional-user-update',{id:form.dataset.institutionalUser,role:values.role,verified:!!values.verified});notify('Permissões atualizadas.');}
       else if(form.matches('[data-ai-form]')){
         const input=$('textarea',form),question=input.value.trim();if(!question)return;
-        const messages=$('[data-ai-messages]');const add=(text,type)=>{const el=document.createElement('div');el.className=`ai-message ai-message--${type}`;const p=document.createElement('p');p.textContent=text;el.append(p);messages.append(el);messages.scrollTop=messages.scrollHeight;animate(el);};
-        add(question,'user');input.disabled=true;$('.ai-card').classList.add('ai-card--thinking');
+        // Markdown simples e seguro para as respostas da Intellia: o texto é escapado antes de qualquer formatação,
+        // então nenhum HTML vindo da IA é executado; links só são aceitos com http(s).
+        const mdEsc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const mdInline=s=>s.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*\w])\*([^*\n]+)\*(?![*\w])/g,'$1<em>$2</em>').replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        const md=text=>{let html='',list=null,para=[],code=null;const flushP=()=>{if(para.length){html+='<p>'+para.map(mdInline).join('<br>')+'</p>';para=[];}};const flushL=()=>{if(list){html+=`<${list.t}>`+list.items.map(i=>'<li>'+mdInline(i)+'</li>').join('')+`</${list.t}>`;list=null;}};
+          for(const raw of mdEsc(String(text)).split(/\r?\n/)){let m;
+            if(code!==null){if(/^\s*```/.test(raw)){html+='<pre><code>'+code.join('\n')+'</code></pre>';code=null;}else code.push(raw);continue;}
+            if(/^\s*```/.test(raw)){flushP();flushL();code=[];continue;}
+            const line=raw.trim();
+            if(!line||/^(-{3,}|\*{3,}|_{3,})$/.test(line)){flushP();flushL();continue;}
+            if((m=line.match(/^#{1,4}\s+(.*)$/))){flushP();flushL();html+='<p class="ai-md-title">'+mdInline(m[1])+'</p>';continue;}
+            if((m=line.match(/^[-*•]\s+(.*)$/))){flushP();if(!list||list.t!=='ul'){flushL();list={t:'ul',items:[]};}list.items.push(m[1]);continue;}
+            if((m=line.match(/^\d+[.)]\s+(.*)$/))){flushP();if(!list||list.t!=='ol'){flushL();list={t:'ol',items:[]};}list.items.push(m[1]);continue;}
+            flushL();para.push(line);}
+          if(code!==null)html+='<pre><code>'+code.join('\n')+'</code></pre>';flushP();flushL();return html;};
+        const messages=$('[data-ai-messages]');const add=(text,type)=>{const el=document.createElement('div');el.className=`ai-message ai-message--${type}`;if(type==='bot'){const body=document.createElement('section');body.className='ai-md';body.innerHTML=md(text);el.append(body);}else{const p=document.createElement('p');p.textContent=text;el.append(p);}messages.append(el);messages.scrollTop=messages.scrollHeight;animate(el);};
+        add(question,'user');input.value='';input.disabled=true;$('.ai-card').classList.add('ai-card--thinking');
+        const thinking=document.createElement('div');thinking.className='ai-message ai-message--bot ai-message--typing';thinking.setAttribute('role','status');thinking.innerHTML='<p>Pensando <i></i><i></i><i></i></p>';messages.append(thinking);messages.scrollTop=messages.scrollHeight;
         try{
-          const answer=await api('assistant',{question});add(answer.answer,'bot');
+          const answer=await api('assistant',{question});thinking.remove();add(answer.answer,'bot');
           const sources=answer.rag?.sources||[];
           if(sources.length){
             const list=document.createElement('ul');list.className='ai-sources';
@@ -713,8 +742,7 @@
             });
             messages.lastElementChild.append(list);
           }
-          input.value='';
-        }catch(error){add(error.message,'bot');}
+        }catch(error){thinking.remove();add(error.message,'bot');}
         finally{input.disabled=false;$('.ai-card').classList.remove('ai-card--thinking');input.focus();}
       }
     }catch(error){notify(error.message);}
@@ -727,7 +755,7 @@
   if(state){
     render();if($('#gender'))$('#gender').value=state.account.gender;
     if(boot.page==='privacidade'&&state.account.blocked.length){const section=document.createElement('section');section.className='settings-group card';section.innerHTML='<h2>Perfis bloqueados</h2>'+state.account.blocked.map(id=>`<p>Perfil bloqueado <button class="btn btn-secondary" data-unblock="${esc(id)}">Desbloquear</button></p>`).join('');$('.page-content').append(section);}
-    if($('[data-ai-messages]'))$('[data-ai-messages]').innerHTML='<div class="ai-message ai-message--bot"><p>Sou a Intellia. Pergunte sobre as publicações e os materiais de estudo da escola. Quando encontrar conteúdo, mostro as fontes.</p></div>';
+    if($('[data-ai-messages]'))$('[data-ai-messages]').innerHTML='<div class="ai-message ai-message--bot"><p>Oi, eu sou a Intellia! Pode me perguntar qualquer coisa: matérias, dúvidas da prova, ideias de projeto. Eu lembro da nossa conversa.</p></div>';
     if(boot.page==='chat' && target() && (state.account.closedDirect||[]).includes(target().id)) {
       const requested=target().id;api('open-direct',{target:requested}).then(()=>{activeChat=requested;return refresh();}).catch(error=>notify(error.message));
     }

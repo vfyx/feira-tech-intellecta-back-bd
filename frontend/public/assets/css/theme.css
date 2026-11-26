@@ -26,3 +26,6 @@ html[data-theme="light"] .block-dialog__confirm { color: #fff; }
 input[data-toggle-setting="light-theme"] { accent-color: var(--primary); }
 html[data-theme="light"] :is(.account-settings-card,.account-profile-card,.password-card,.mobile-nav) { background: var(--surface); }
 html[data-theme="light"] :is(.sidebar-profile-link:hover,.sidebar-profile-link.active) { background: var(--surface-soft); }
+
+/* Tema claro: o "background" acima reseta tamanho/posição; com banner enviado, volta a cobrir a capa inteira. */
+html[data-theme="light"] .profile-card__cover[style*="background-image"] { background-size: cover; background-position: center; background-repeat: no-repeat; }

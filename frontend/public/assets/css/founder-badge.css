@@ -37,3 +37,6 @@
   .founder-badge::after { animation: none; }
 }
 html[data-theme="light"] .founder-badge { border-color: #b77a12; }
+/* No Explorar, o selo fica dentro de .person__copy, cujos spans viram bloco: mantém o tamanho do selo. */
+.person__copy .founder-badge { display: inline-flex; color: #382300; font-size: .62rem; padding: .18rem .5rem; margin-inline-start: .4rem; }
+.person__copy .founder-badge span { display: inline; color: inherit; font-size: inherit; }

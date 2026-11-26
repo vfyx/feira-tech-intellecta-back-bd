@@ -181,7 +181,8 @@ class IntellectaStateController extends Controller
             ->selectRaw('m.remetente_id, count(*) as total')->groupBy('m.remetente_id')->pluck('total','remetente_id')->all();
         $labels = ['curtida' => 'curtiu sua publicação', 'comentario' => 'comentou na sua publicação', 'mensagem' => 'enviou uma mensagem', 'mencao' => 'mencionou você em uma publicação', 'republicacao' => 'republicou sua publicação', 'seguidor' => 'começou a seguir você', 'publicacao' => 'publicou uma ideia', 'acesso' => 'Novo acesso à conta'];
         $notifications = DB::table('notificacoes as n')->leftJoin('usuarios as u', 'u.id', '=', 'n.autor_id')
-            ->where('n.user_id', $uid)->where(fn ($q) => $q->whereNull('n.autor_id')->orWhereNotIn('n.autor_id', $hidden))
+            // Avisos de "novo acesso à conta" ficam de fora: eram um por login e escondiam o que importa.
+            ->where('n.user_id', $uid)->where('n.tipo', '!=', 'acesso')->where(fn ($q) => $q->whereNull('n.autor_id')->orWhereNotIn('n.autor_id', $hidden))
             ->orderByDesc('n.id')->limit(100)->get(['n.*', 'u.name as author_name'])
             ->map(fn ($n): array => [
                 'id' => (string) $n->id, 'actor' => $n->author_name ?? 'Intellecta',

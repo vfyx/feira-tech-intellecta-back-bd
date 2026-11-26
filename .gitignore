@@ -9,3 +9,8 @@ banco/postgres-pgvector-pg16.tar
 /api/storage/framework/sessions/*
 /api/storage/logs/*
 !/api/storage/**/.gitignore
+
+# Segredos e dependências (não versionar)
+api/.env
+api/vendor/
+node_modules/

@@ -21,7 +21,9 @@ function render_site(string $page, array $people, array $feed, array $notificati
 
     render_page_head($page);
 
-    if (in_array($page, $publicPages, true)) {
+    // Páginas como Ajuda e Termos são públicas, mas para quem está logado abrem com o menu do site.
+    $loggedIn = !empty($GLOBALS['clientState']['data']);
+    if (in_array($page, $publicPages, true) && !($loggedIn && in_array($page, $appPages, true))) {
         include __DIR__ . '/../../' . $routes['views'][$page];
         render_page_footer();
         return;
@@ -36,7 +38,7 @@ function render_site(string $page, array $people, array $feed, array $notificati
     render_app_shell($page, $account);
     include __DIR__ . '/../../' . $routes['views'][$page];
     echo '</main>';
-    render_rightbar();
+    render_rightbar($people, $feed, $account);
     echo '</div>';
     render_mobile_nav($page);
     render_page_footer();
@@ -54,7 +56,8 @@ function render_page_head(string $title): void
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="theme-color" content="#0d110f">
-      <title><?= e(ucfirst($title)) ?> · Intellecta</title>
+      <?php $pageTitles = ['home' => 'Início', 'explore' => 'Explorar', 'notifications' => 'Notificações', 'chat' => 'Conversas', 'reclamacoes' => 'Reclamações', 'profile' => 'Perfil', 'saved' => 'Salvos', 'topics' => 'Tópicos', 'public-profile' => 'Perfil público', 'editar-perfil' => 'Editar perfil', 'sua-conta' => 'Sua conta', 'informacoes-conta' => 'Informações da conta', 'configuracao-senha' => 'Senha', 'alterar-senha' => 'Alterar senha', 'preferencias' => 'Preferências', 'privacidade' => 'Privacidade', 'seguranca' => 'Segurança', 'admin-institucional' => 'Administração', 'moderacao' => 'Moderação', 'ajuda' => 'Ajuda', 'termos' => 'Termos de uso', 'privacidade-legal' => 'Política de privacidade', 'login' => 'Entrar', 'register' => 'Criar conta', 'institutional-login' => 'Acesso institucional', '404' => 'Página não encontrada']; ?>
+      <title><?= e($pageTitles[$title] ?? ucfirst($title)) ?> · Intellecta</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
@@ -168,8 +171,14 @@ function render_mobile_nav(string $page): void
     <?php
 }
 
-function render_rightbar(): void
+function render_rightbar(array $people = [], array $feed = [], array $account = []): void
 {
+    // Sugestões da coluna direita: pessoas para conhecer e tópicos mais usados.
+    $suggested = array_slice(array_values(array_filter($people, fn($p) => !hidden_from_explore($p) && ($p['username'] ?? '') !== ($account['username'] ?? ''))), 0, 4);
+    $trending = [];
+    foreach ($feed as $post) { if (!empty($post['topic'])) $trending[$post['topic']] = ($trending[$post['topic']] ?? 0) + 1; }
+    arsort($trending);
+    $trending = array_slice($trending, 0, 4, true);
     ?>
     <aside class="rightbar">
       <label class="eyebrow" for="global-search">Pesquisa</label>
@@ -177,6 +186,27 @@ function render_rightbar(): void
         <span><?= icon('search') ?></span>
         <input class="input" id="global-search" data-filter placeholder="Pesquisar no Intellecta">
       </div>
+      <?php if ($suggested): ?>
+      <section class="rightbar-block" aria-labelledby="rb-people">
+        <h2 class="eyebrow" id="rb-people">Pessoas para conhecer</h2>
+        <ul class="rightbar-people">
+          <?php foreach ($suggested as $p): ?>
+          <li><a href="?page=public-profile&amp;user=<?= e($p['username']) ?>"><?= avatar_html($p) ?><span><strong><?= e($p['name']) ?><?= founder_badge_html($p) ?></strong><small>@<?= e($p['username']) ?></small></span></a></li>
+          <?php endforeach; ?>
+        </ul>
+        <a class="rightbar-more" href="?page=explore">Ver todas as pessoas →</a>
+      </section>
+      <?php endif; ?>
+      <?php if ($trending): ?>
+      <section class="rightbar-block" aria-labelledby="rb-topics">
+        <h2 class="eyebrow" id="rb-topics">Tópicos em alta</h2>
+        <ul class="rightbar-topics">
+          <?php foreach ($trending as $topicName => $topicCount): ?>
+          <li><a href="?page=home&amp;topic=<?= urlencode((string) $topicName) ?>"><strong>#<?= e((string) $topicName) ?></strong><small><?= e(plural((int) $topicCount, 'publicação', 'publicações')) ?></small></a></li>
+          <?php endforeach; ?>
+        </ul>
+      </section>
+      <?php endif; ?>
       <button class="ai-launcher" type="button" data-ai-toggle aria-expanded="false" aria-controls="intellia-panel" aria-label="Abrir Intellia">
         <img src="<?= e(intellecta_asset('images/intellecta_icon_branco_vetor.svg')) ?>" alt="" aria-hidden="true">
         <span class="ai-launcher__pulse"></span>
@@ -188,20 +218,20 @@ function render_rightbar(): void
             <span class="ai-brand__mark">I</span>
             <div><strong id="ai-title">INTELLIA</strong><small>assistente de estudos</small></div>
           </div>
-          <div class="ai-card__controls"><span class="ai-status">base da escola</span><button class="ai-logo-close" type="button" data-ai-toggle aria-label="Fechar Intellia"><img src="<?= e(intellecta_asset('images/intellecta_icon_branco_vetor.svg')) ?>" alt="" aria-hidden="true"></button></div>
+          <div class="ai-card__controls"><span class="ai-status">online</span><button class="ai-new-chat" type="button" data-ai-reset title="Começar uma nova conversa"><span aria-hidden="true">+</span> Nova conversa</button><button class="ai-logo-close" type="button" data-ai-toggle aria-label="Fechar Intellia"><img src="<?= e(intellecta_asset('images/intellecta_icon_branco_vetor.svg')) ?>" alt="" aria-hidden="true"></button></div>
         </div>
         <div class="ai-orbit ai-orbit--one"></div><div class="ai-orbit ai-orbit--two"></div><div class="ai-orbit ai-orbit--three"></div>
         <div class="ai-intro">
           <span class="ai-intro__spark"><?= icon('spark') ?></span>
-          <div><strong>O que vamos estudar?</strong><p>Consulte publicações e materiais de estudo com indicação das fontes.</p></div>
+          <div><strong>Como posso ajudar?</strong><p>Pergunte qualquer coisa. Quando houver material da escola sobre o assunto, eu mostro as fontes.</p></div>
         </div>
         <div class="ai-messages" data-ai-messages aria-live="polite">
           <div class="ai-message ai-message--bot"><p>Pergunte sobre os conteúdos da escola. Vou buscar trechos relacionados e mostrar as fontes encontradas.</p></div>
         </div>
         <div class="ai-suggestions" aria-label="Sugestões rápidas">
-          <button type="button" data-ai-prompt="Monte um plano de estudos">Plano de estudos</button>
-          <button type="button" data-ai-prompt="Resuma este assunto">Resumir assunto</button>
-          <button type="button" data-ai-prompt="Explique de forma simples">Explicar melhor</button>
+          <button type="button" data-ai-prompt="Monte um plano de estudos para a minha próxima prova. Pergunte o que precisar saber antes.">Plano de estudos</button>
+          <button type="button" data-ai-prompt="Resuma para mim o assunto: " data-ai-fill>Resumir assunto</button>
+          <button type="button" data-ai-prompt="Explique de forma mais simples a sua última resposta, com um exemplo.">Explicar melhor</button>
         </div>
         <form class="ai-form" data-ai-form>
           <label class="sr-only" for="ai-question">Pergunte à Intellecta IA</label>

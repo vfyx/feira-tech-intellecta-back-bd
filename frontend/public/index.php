@@ -20,6 +20,12 @@ if (!$data && !in_array($page, ['login', 'register', 'institutional-login', 'ter
 if (!isset($app['routes']['views'][$page])) http_response_code(404);
 if ($page === 'public-profile') {
     $selected = is_string($_GET['user'] ?? null) ? $_GET['user'] : '';
+    // O próprio usuário não tem "Seguir"/"Conversar" consigo: abre a página "Perfil", que é a dele.
+    $own = (string) ($data['account']['username'] ?? '');
+    if ($own !== '' && strcasecmp(ltrim($selected, '@'), $own) === 0) {
+        header('Location: ?page=profile');
+        exit;
+    }
     if (!in_array($selected, array_column($data['people'] ?? [], 'username'), true)) {
         http_response_code(404);
     }

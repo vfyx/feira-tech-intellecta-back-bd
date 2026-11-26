@@ -5,7 +5,6 @@
     <span class="eyebrow">Seu espaço no Intellecta</span>
     <h1>Perfil</h1>
   </div>
-  <a class="btn btn-secondary" href="?page=editar-perfil"><?= icon('edit') ?> Editar perfil</a>
 </header>
 
 <div class="page-content profile-page">
@@ -25,6 +24,7 @@
           <span class="profile-status" aria-label="Online"></span>
         </div>
         <div class="profile-card__actions">
+          <a class="btn btn-primary btn-icon-label" href="?page=editar-perfil"><?= icon('edit') ?> Editar perfil</a>
           <a class="btn btn-secondary btn-icon-label" href="?page=sua-conta"><?= icon('settings') ?> Conta</a>
           <button class="btn btn-ghost" type="button" data-profile-share><?= icon('send') ?> Compartilhar</button>
         </div>

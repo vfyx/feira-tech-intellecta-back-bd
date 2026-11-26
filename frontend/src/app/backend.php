@@ -102,6 +102,7 @@ function backend_state(): ?array
 
 function api_action(string $action, array $input): array
 {
+    if ($action === 'assistant-reset') return api_call('POST', '/chat/reset', []);
     if ($action === 'assistant') {
         set_time_limit(75);
         return api_call('POST', '/chat', ['message' => field($input, 'question', 10000)], true, 70);

@@ -12,18 +12,19 @@
     <p>Explore conversas por assunto e encontre pessoas com interesses próximos dos seus.</p>
   </section>
   <div class="topic-grid">
-    <?php foreach ([
-      ['Tecnologia', '1.248 publicações', 'spark'],
-      ['Design', '862 publicações', 'image'],
-      ['Ciência', '734 publicações', 'spark'],
-      ['Matemática', '521 publicações', 'plus'],
-      ['Projetos', '408 publicações', 'edit'],
-      ['Carreira', '316 publicações', 'user'],
-    ] as [$name, $count, $topicIcon]): ?>
+    <?php
+      // Tópicos fixos + os que já aparecem nas publicações (ex.: #Ideias), dos mais usados para os menos usados.
+      $topicIcons = ['Ideias' => 'spark', 'Tecnologia' => 'spark', 'Design' => 'image', 'Ciência' => 'spark', 'Matemática' => 'plus', 'Projetos' => 'edit', 'Carreira' => 'user'];
+      foreach ($feed as $post) { if (!empty($post['topic']) && !isset($topicIcons[$post['topic']])) $topicIcons[$post['topic']] = 'spark'; }
+      $topicCounts = [];
+      foreach (array_keys($topicIcons) as $topicName) $topicCounts[$topicName] = count(array_filter($feed, fn($post) => ($post['topic'] ?? '') === $topicName));
+      arsort($topicCounts);
+    ?>
+    <?php foreach (array_map(fn($n) => [$n, $topicCounts[$n], $topicIcons[$n]], array_keys($topicCounts)) as [$name, $count, $topicIcon]): ?>
       <a class="topic-card card" href="?page=home&amp;topic=<?= urlencode($name) ?>">
         <span class="topic-card__icon"><?= icon($topicIcon) ?></span>
         <strong>#<?= e($name) ?></strong>
-        <span><?= count(array_filter($feed, fn($post) => $post['topic'] === $name)) ?> publicações</span>
+        <span><?= e(plural($count, 'publicação', 'publicações')) ?></span>
       </a>
     <?php endforeach; ?>
   </div>

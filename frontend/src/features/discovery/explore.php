@@ -1,11 +1,14 @@
-<?php declare(strict_types=1); ?>
+<?php declare(strict_types=1);
+// Explorar mostra só pessoas reais: sem a própria conta e sem contas de teste/validação.
+$people = array_values(array_filter($people, fn($p) => !hidden_from_explore($p) && ($p['username'] ?? '') !== ($account['username'] ?? '')));
+?>
 
 <header class="page-header">
   <div>
     <span class="eyebrow">Descubra novas conexões</span>
     <h1>Explorar</h1>
   </div>
-  <span class="page-count"><?= count($people) ?> pessoas</span>
+  <span class="page-count"><?= count($people) ?> <?= count($people) === 1 ? 'pessoa' : 'pessoas' ?></span>
 </header>
 
 <div class="page-content explore-page">
@@ -36,13 +39,13 @@
   <div class="list people-list explore-people-list">
     <?php foreach ($people as $person): ?>
       <article class="card person" data-filter-item>
-        <div class="avatar"><?= e(initials($person['name'])) ?></div>
+        <?= avatar_html($person) ?>
         <div class="person__copy">
-          <strong><?= e($person['name']) ?></strong>
+          <strong><?= e($person['name']) ?><?= founder_badge_html($person) ?></strong>
           <span>@<?= e($person['username']) ?></span>
           <p><?= e($person['bio']) ?></p>
         </div>
-        <a class="btn btn-secondary" href="?page=public-profile&amp;user=<?= e($person['username']) ?>">
+        <a class="btn btn-secondary" href="?page=public-profile&amp;user=<?= e($person['username']) ?>" aria-label="Ver perfil de <?= e($person['name']) ?>">
           Ver perfil <?= icon('send') ?>
         </a>
       </article>

@@ -584,3 +584,22 @@ button { cursor: pointer; }
 .public-profile-copy { min-width: 0; }
 .public-profile-copy p { color: var(--muted); }
 .profile-action-icon[data-profile-menu] { white-space: nowrap; line-height: 1; }
+
+/* Respostas formatadas da Intellia (Markdown) */
+.ai-md { display: flex; flex-direction: column; gap: .4rem; overflow-wrap: anywhere; }
+.ai-md p { margin: 0; line-height: 1.5; }
+.ai-md .ai-md-title { font-weight: 700; color: var(--primary); }
+.ai-md ul, .ai-md ol { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: .2rem; }
+.ai-md li { line-height: 1.45; }
+.ai-md strong { font-weight: 700; color: var(--text); }
+.ai-md a { color: var(--primary); text-decoration: underline; }
+.ai-md code { padding: .05rem .3rem; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-soft); font-family: "JetBrains Mono", monospace; font-size: .92em; }
+.ai-md pre { margin: 0; padding: .55rem .65rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); overflow-x: auto; }
+.ai-md pre code { padding: 0; border: 0; background: none; white-space: pre; }
+
+/* Botão "Nova conversa" da Intellia */
+.ai-new-chat { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .6rem; border: 1px solid var(--line); border-radius: 999px; color: var(--primary); background: rgba(205, 212, 126, .08); font: inherit; font-size: .64rem; white-space: nowrap; cursor: pointer; }
+.ai-new-chat:hover, .ai-new-chat:focus-visible { border-color: var(--primary); background: rgba(205, 212, 126, .16); }
+.ai-new-chat:disabled { opacity: .5; cursor: wait; }
+.ai-new-chat span { font-size: .9rem; line-height: 1; }
+@media (max-width: 480px) { .ai-card .ai-status { display: none; } }

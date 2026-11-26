@@ -1,0 +1,61 @@
+/* Refinamentos de layout (nov/2026). Carregado por último em styles.css. */
+
+/* Posts: #tópico alinhado com o texto e a data só no topo (o rodapé repetia a mesma data). */
+.post > .text-link { display: inline-block; margin: -.4rem 0 .9rem 3.55rem; }
+.post__footer .post__stats { display: none; }
+.profile-post > .text-link { margin-left: 0; }
+@media (max-width: 760px) { .post > .text-link { margin-left: 0; } }
+
+/* Notificações sem itens */
+.notification-empty { margin: 0; padding: 1.4rem 1.2rem; text-align: center; }
+
+/* Coluna da direita: pessoas para conhecer e tópicos em alta */
+.rightbar-block { margin-top: 1.6rem; }
+.rightbar-block .eyebrow { display: block; margin: 0 0 .7rem; font-size: .62rem; }
+.rightbar-people, .rightbar-topics { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.rightbar-people a, .rightbar-topics a { display: flex; align-items: center; gap: .65rem; min-width: 0; padding: .5rem .55rem; border: 1px solid transparent; border-radius: 12px; color: var(--text); text-decoration: none; transition: background .2s, border-color .2s; }
+.rightbar-people a:hover, .rightbar-topics a:hover, .rightbar-people a:focus-visible, .rightbar-topics a:focus-visible { border-color: var(--line); background: var(--surface-soft); }
+.rightbar-people .avatar { flex: 0 0 2.1rem; width: 2.1rem; height: 2.1rem; font-size: .8rem; }
+.rightbar-people a > span { display: grid; min-width: 0; }
+.rightbar-people strong { overflow: hidden; font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.rightbar-people .founder-badge { padding: .1rem .4rem; font-size: .55rem; margin-inline-start: .3rem; }
+.rightbar-people small, .rightbar-topics small { color: var(--muted); font-size: .68rem; }
+.rightbar-topics a { justify-content: space-between; }
+.rightbar-topics strong { font-size: .82rem; color: var(--primary); }
+.rightbar-more { display: inline-block; margin: .5rem .55rem 0; color: var(--primary); font-size: .74rem; }
+@media (max-width: 1280px) { .rightbar-block { display: none; } }
+
+/* Celular: barra de navegação embaixo no lugar da coluna de ícones (a regra de 1280px escondia a barra). */
+@media (max-width: 760px) {
+  .app-shell { display: block; padding-bottom: calc(4.6rem + env(safe-area-inset-bottom)); }
+  .sidebar { display: none; }
+  .mobile-nav { display: flex; position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; justify-content: space-around; padding: .5rem .25rem calc(.5rem + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgba(15, 18, 13, .94); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .mobile-nav a { display: grid; place-items: center; gap: .15rem; min-width: 3rem; color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: .56rem; text-decoration: none; }
+  .mobile-nav a.active { color: var(--primary); }
+  .mobile-nav .icon { width: 1.2rem; height: 1.2rem; }
+  /* Botão da Intellia acima da barra e menor, para não cobrir os posts. */
+  .ai-launcher { right: .85rem; bottom: calc(4.9rem + env(safe-area-inset-bottom)); width: 2.85rem; height: 2.85rem; }
+  .ai-launcher img { width: 2rem; height: 2rem; }
+  .rightbar .ai-card { bottom: calc(4.9rem + env(safe-area-inset-bottom)); height: min(620px, calc(100dvh - 6rem - env(safe-area-inset-bottom))); max-height: calc(100dvh - 6rem); }
+  .toast { bottom: calc(5rem + env(safe-area-inset-bottom)); }
+}
+html[data-theme="light"] .mobile-nav { background: rgba(255, 254, 249, .95); }
+
+/* Revisão do tema escuro */
+/* Com a Intellia aberta, as sugestões da coluna direita (selos dourados brilhantes) não aparecem atrás do painel. */
+body.ai-is-open .rightbar-block { visibility: hidden; }
+/* Busca das conversas: mais espaço entre a lupa e o texto. */
+.chat-search .input { padding-left: 2.5rem; }
+/* Tópicos: título grande com linhas mais próximas. */
+.topic-hero h2 { line-height: 1.05; }
+/* Explorar: espaço entre a busca e a lista de pessoas. */
+.explore-page .search-label { display: grid; margin-bottom: 1rem; }
+/* Celular: no Explorar o botão fica na mesma linha, compacto, em vez de ocupar uma linha sozinho. */
+@media (max-width: 760px) {
+  .explore-people-list .person { flex-wrap: nowrap; align-items: center; gap: .75rem; }
+  .explore-people-list .person__copy { flex: 1 1 auto; flex-basis: auto; min-width: 0; }
+  .explore-people-list .person .btn { flex: 0 0 auto; padding: .55rem .7rem; font-size: 0; }
+  .explore-people-list .person .btn .icon { width: 1rem; height: 1rem; }
+  .explore-people-list .person__copy strong { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .45rem; }
+  .explore-people-list .person__copy .founder-badge { margin-inline-start: 0; }
+}

@@ -22,6 +22,18 @@ function avatar_html(array $person, string $classes = ''): string
 }
 
 
+/** Contas usadas só para testar o sistema: não aparecem no Explorar nem nas sugestões. */
+function hidden_from_explore(array $person): bool
+{
+    $username = strtolower((string) ($person['username'] ?? ''));
+    return in_array($username, ['admin'], true) || preg_match('/^(teste|validacao)_/', $username) === 1;
+}
+
+function plural(int $count, string $one, string $many): string
+{
+    return $count . ' ' . ($count === 1 ? $one : $many);
+}
+
 function founder_badge_html(array $person): string
 {
     $username = strtolower(ltrim(trim((string) ($person['username'] ?? '')), '@'));

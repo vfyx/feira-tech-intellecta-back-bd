@@ -39,6 +39,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureActive::class])->g
     Route::post('/posts/{post}/comments', [PostController::class, 'comment']);
 
     Route::post('/chat', ChatController::class)->middleware('throttle:10,1');
+    Route::post('/chat/reset', [ChatController::class, 'reset'])->middleware('throttle:20,1');
 
     // Mensagens diretas entre usuários.
     Route::prefix('dm')->group(function (): void {

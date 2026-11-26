@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <small class="muted">© 2024 Intellecta · Feito para quem não para de aprender.</small>
+    <small class="muted">© 2026 Intellecta · Feito para quem não para de aprender.</small>
   </section>
 
   <section class="auth-form-wrap">
@@ -54,12 +54,6 @@
         </div>
         <button class="btn btn-primary" type="submit">Entrar <span aria-hidden="true">→</span></button>
       </form>
-
-      <div class="divider">ou continue com</div>
-      <div class="social-grid">
-        <button class="btn btn-secondary" type="button" data-provider="Google">Google</button>
-        <button class="btn btn-secondary" type="button" data-provider="Microsoft">Microsoft</button>
-      </div>
 
       <p class="auth-foot">Ainda não tem uma conta? <a href="?page=register">Criar conta</a></p>
       <p class="auth-foot"><a href="?page=institutional-login">Acesso institucional — Professores e Administração</a></p>
