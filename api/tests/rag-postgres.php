@@ -123,7 +123,11 @@ try {
     verifyRag(str_contains($generation['contents'][0]['parts'][0]['text'], '[Fonte 1:'), 'Contexto enviado ao Gemini');
     [$status, $answer] = ragApi('POST', 'chat', ['message' => 'astronomia'], $token);
     verifyRag($status === 200 && !$answer['rag']['used'] && $answer['rag']['sources'] === [], 'Ausência de material explícita');
-    verifyRag(count(array_filter($requests, fn ($r) => str_ends_with($r->url(), ':generateContent'))) === count($generations), 'Sem contexto não inventa geração');
+    // A Intellia agora responde qualquer pergunta: sem material da escola ela usa o Gemini, mas sem citar fontes.
+    verifyRag(count(array_filter($requests, fn ($r) => str_ends_with($r->url(), ':generateContent'))) === count($generations) + 1, 'Sem contexto responde com conhecimento geral');
+    $generalRequest = array_values(array_filter($requests, fn ($r) => str_ends_with($r->url(), ':generateContent')));
+    $generalContents = end($generalRequest)['contents'];
+    verifyRag(!str_contains(end($generalContents)['parts'][0]['text'], 'Material da escola'), 'Sem contexto não envia material inventado');
     $emptyGeneration = true;
     [$status] = ragApi('POST', 'chat', ['message' => 'Frações'], $token);
     verifyRag($status === 503, 'Resposta vazia do provedor não é tratada como sucesso');
